@@ -21,6 +21,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.stream.Collectors;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -44,6 +46,10 @@ import evmtesttools.util.Hex;
  */
 public class StateTest {
 	/**
+	 * Every individual test has a name.
+	 */
+	private final String name;
+	/**
 	 * Maps a given fork to a given set of test instances to run.
 	 */
 	private final Map<String, List<Instance>> instances;
@@ -58,10 +64,26 @@ public class StateTest {
 	 */
 	private final Transaction.Template transaction;
 
-	public StateTest(Map<String,List<Instance>> instances, Map<BigInteger,Account> pre, Transaction.Template tx) {
+	public StateTest(String name, Map<String,List<Instance>> instances, Map<BigInteger,Account> pre, Transaction.Template tx) {
+		this.name = name;
 		this.instances = instances;
 		this.pre = pre;
 		this.transaction = tx;
+		// Associate each instance with this test
+		for(List<Instance> is : instances.values()) {
+			for(Instance i : is) {
+				i.parent = this;
+			}
+		}
+	}
+
+	/**
+	 * Get the name of this test.
+	 *
+	 * @return
+	 */
+	public String getName() {
+		return name;
 	}
 
 	/**
@@ -84,42 +106,75 @@ public class StateTest {
 	}
 
 	/**
-	 * Get an iterator over the concrete transactions described by this state test
-	 * for a given fork.
+	 * Get a list of all instances.
+	 *
+	 * @return
+	 */
+	public List<Instance> getInstances() {
+		ArrayList<Instance> res = new ArrayList<>();
+		for(List<Instance> i : instances.values()) {
+			res.addAll(i);
+		}
+		return res;
+	}
+
+	/**
+	 * Select all instances meeting a certain criteria (e.g. fork).
+	 *
+	 * @param p Predicate to test with, where first parameter is the fork and second
+	 *          provides the instance details.
+	 * @return
+	 */
+	public List<Instance> selectInstances(BiPredicate<String, Instance> p) {
+		ArrayList<Instance> res = new ArrayList<>();
+		for (Map.Entry<String, List<Instance>> is : instances.entrySet()) {
+			for (Instance i : is.getValue()) {
+				if (p.test(is.getKey(), i)) {
+					res.add(i);
+				}
+			}
+		}
+		return res;
+	}
+
+	/**
+	 * Get an iterator over all concrete transactions described by this state test
+	 * meeting a certain criteria (e.g. fork).
+	 *
+	 * @param p    Predicate to test with, where first parameter is the fork and
+	 *             second provides the instance details.
 	 *
 	 * @param fork
 	 * @return
 	 */
-	public Iterator<Transaction> iterate(String fork) {
-		return new Iterator<Transaction>() {
-			private final Iterator<Instance> iter = instances.get(fork).iterator();
-			@Override
-			public boolean hasNext() { return iter.hasNext(); }
-
-			@Override
-			public Transaction next() {
-				Instance i = iter.next();
-				return transaction.instantiate(i.expect, i.indexes);
-			}
-		};
+	public Iterable<Transaction> instantiate(BiPredicate<String, Instance> p) {
+		return selectInstances(p).stream().map(i -> transaction.instantiate(i.expect, i.indexes))
+				.collect(Collectors.toList());
 	}
 
 	/**
-	 * Read a state test encoded in JSON.
+	 * Read a state test encoded in JSON producing a list of state test.
 	 *
 	 * @param json
 	 * @return
 	 * @throws JSONException
 	 */
-	public static StateTest fromJSON(JSONObject json) throws JSONException {
-		// Parse transaction template
-		Transaction.Template template = Transaction.Template.fromJSON(json.getJSONObject("transaction"));
-		// Parse world state
-		Map<BigInteger, Account> worldstate = parsePreState(json.getJSONObject("pre"));
-		// Parse state test info
-		Map<String, List<StateTest.Instance>> instances = parsePostState(json.getJSONObject("post"));
+	public static List<StateTest> fromJSON(JSONObject json) throws JSONException {
+		ArrayList<StateTest> tests = new ArrayList<>();
+		//
+		for (String testname : JSONObject.getNames(json)) {
+			JSONObject ith = json.getJSONObject(testname);
+			// Parse transaction template
+			Transaction.Template template = Transaction.Template.fromJSON(ith.getJSONObject("transaction"));
+			// Parse world state
+			Map<BigInteger, Account> worldstate = parsePreState(ith.getJSONObject("pre"));
+			// Parse state test info
+			Map<String, List<StateTest.Instance>> instances = parsePostState(ith.getJSONObject("post"));
+			// Done
+			tests.add(new StateTest(testname, instances, worldstate, template));
+		}
 		// Done
-		return new StateTest(instances, worldstate, template);
+		return tests;
 	}
 
 	public static Map<BigInteger, Account> parsePreState(JSONObject json) throws JSONException {
@@ -138,7 +193,7 @@ public class StateTest {
 			JSONArray tests = json.getJSONArray(fork);
 			List<StateTest.Instance> sts = new ArrayList<>();
 			for (int i = 0; i != tests.length(); ++i) {
-				sts.add(StateTest.Instance.fromJSON(tests.getJSONObject(i)));
+				sts.add(StateTest.Instance.fromJSON(fork, tests.getJSONObject(i)));
 			}
 			forks.put(fork, sts);
 		}
@@ -154,16 +209,44 @@ public class StateTest {
 	 *
 	 */
 	public static class Instance {
-
+		private StateTest parent;
+		public final String fork;
 		public final Map<String, Integer> indexes;
 		public final Transaction.Expectation expect;
 
-		public Instance(Map<String, Integer> indices, Transaction.Expectation expect) {
+		public Instance(String fork, Map<String, Integer> indices, Transaction.Expectation expect) {
+			this.fork = fork;
 			this.indexes = Collections.unmodifiableMap(indices);
 			this.expect = expect;
 		}
 
-		public static Instance fromJSON(JSONObject json) throws JSONException {
+		/**
+		 * Get the world state that should hold before this instance executes.
+		 *
+		 * @return
+		 */
+		public Map<BigInteger, Account> getWorldState() {
+			return parent.pre;
+		}
+
+		/**
+		 * Instantiate this instance with a given transaction.
+		 *
+		 * @return
+		 */
+		public Transaction instantiate() {
+			return parent.transaction.instantiate(expect, indexes);
+		}
+
+		@Override
+		public String toString() {
+			int g = indexes.get("gas");
+			int d = indexes.get("data");
+			int v = indexes.get("value");
+			return String.format("%s_%s_%d_%d_%d",parent.getName(),fork,g,d,v);
+		}
+
+		public static Instance fromJSON(String fork, JSONObject json) throws JSONException {
 			JSONObject is = json.getJSONObject("indexes");
 			HashMap<String, Integer> map = new HashMap<>();
 			map.put("data", is.getInt("data"));
@@ -191,7 +274,7 @@ public class StateTest {
 			} else {
 				kind = Transaction.Expectation.OK;
 			}
-			return new Instance(map, kind);
+			return new Instance(fork, map, kind);
 		}
 	}
 }

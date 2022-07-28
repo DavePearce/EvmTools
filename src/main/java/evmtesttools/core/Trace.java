@@ -43,6 +43,11 @@ public class Trace {
 		return elements;
 	}
 
+	@Override
+	public String toString() {
+		return elements.toString();
+	}
+
 	/**
 	 * Represents a single element of a trace (e.g. a single step of execution).
 	 *

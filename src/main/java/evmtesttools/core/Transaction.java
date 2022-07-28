@@ -91,6 +91,23 @@ public class Transaction {
 	}
 
 	/**
+	 * Get the contract code to execute for this transaction.
+	 *
+	 * @param worldState
+	 * @return
+	 */
+	public byte[] getCode(Map<BigInteger, Account> worldState) {
+		if (to == null) {
+			// NOTE: its not clear to me why this makes sense, but some of the ethereum
+			// reference tests are setup like this. Specifically, to allow them to be
+			// parameterised over code.
+			return data;
+		} else {
+			return worldState.get(to).code;
+		}
+	}
+
+	/**
 	 * A transaction template is a transaction parameterised on three values:
 	 * <code>data</code>, <code>gasLimit</code> and <code>value</code>. For each of
 	 * these items, a template has a predefined array of values. A transaction can
@@ -144,13 +161,10 @@ public class Transaction {
 			String _to = json.getString("to");
 			BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
 			BigInteger sender = Hex.toBigInt(json.getString("sender"));
-			BigInteger gasPrice;
-			if (json.has("gasPrice")) {
-				gasPrice = Hex.toBigInt(json.getString("gasPrice"));
-			} else {
-				System.out.println("*** MISSING GAS PRICE");
-				gasPrice = BigInteger.ZERO;
-			}
+			// NOTE: for reasons unknown some of the tests don't have a gasPrice field. For
+			// now I have just set it to zero if its missing. A better solution might be to
+			// use a default.
+			BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice","0x0"));
 			BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 			BigInteger[] gasLimits = parseValueArray(json.getJSONArray("gasLimit"));
 			BigInteger[] values = parseValueArray(json.getJSONArray("value"));
