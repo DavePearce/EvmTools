@@ -18,6 +18,9 @@ apply plugin: 'java'
 apply plugin: 'eclipse'
 // Apply application plugin for generating start scripts
 apply plugin: 'application'
+// Stuff needed for publishing
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
 // ======================================================================
 // Java Build
@@ -28,7 +31,16 @@ repositories {
     mavenCentral()
 }
 
+group = 'org.whiley'
+version = '0.1'
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
+
 // In this section you declare the dependencies for your production and test code
+
 dependencies {
     implementation("commons-cli:commons-cli:1.5.0")    
     implementation("org.json:org.json:chargebee-1.0")
@@ -39,7 +51,6 @@ dependencies {
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
 }
 
-
 // ======================================================================
 // Java Application
 // ======================================================================
@@ -47,4 +58,64 @@ dependencies {
 application {
     mainClass = 'evmtesttool.Main'
     applicationName = 'evmtesttool'
+}
+
+// ======================================================================
+// Maven Central
+// ======================================================================
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            pom {
+                // groupId='org.whiley'
+                // version='0.1'                
+                artifactId='evmtesttools'
+                name = 'EVM Test Tools'
+                description = 'A tool for generating reference tests with full trace data.'
+                scm {
+                    url = 'https://github.com/DavePearce/EvmTestTools'
+                }
+                
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id = 'redjamjar'
+                        name = 'David J. Pearce'
+                        email = 'david.pearce@ecs.vuw.ac.nz'
+                    }
+                }
+            }            
+        }
+    }
+    repositories {
+        maven {
+            def snapshotsUrl = 'https://oss.sonatype.org/content/repositories/snapshots'
+            def releaseUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
+            url = version.endsWith('SNAPSHOT') ? snapshotUrl : releaseUrl
+            credentials {
+                username sonatypeUsername
+                password sonatypePassword
+            }
+        }
+    }
+}
+
+
+signing {
+    useGpgCmd()
+    sign publishing.publications.mavenJava
+}
+
+
+javadoc {
+    if(JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
 }
