@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttools.core;
+package evmtesttool.core;
 
 import java.math.BigInteger;
 import java.util.Arrays;
@@ -22,7 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttools.util.Hex;
+import evmtesttool.util.Hex;
 
 public class Transaction {
 	public enum Expectation {

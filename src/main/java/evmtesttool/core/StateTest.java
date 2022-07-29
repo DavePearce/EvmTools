@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttools.core;
+package evmtesttool.core;
 
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttools.util.Hex;
+import evmtesttool.util.Hex;
 
 /**
  * A state test represents the execution of a single contract call (i.e.
@@ -116,6 +116,15 @@ public class StateTest {
 			res.addAll(i);
 		}
 		return res;
+	}
+
+	/**
+	 * Get a list of all instances.
+	 *
+	 * @return
+	 */
+	public List<Instance> getInstances(String fork) {
+		return instances.get(fork);
 	}
 
 	/**

@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttools.evms;
+package evmtesttool.evms;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -27,13 +27,13 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttools.core.Account;
-import evmtesttools.core.StateTest;
-import evmtesttools.core.Trace;
-import evmtesttools.core.Transaction;
-import evmtesttools.core.WorldState;
-import evmtesttools.util.Hex;
-import evmtesttools.util.StreamGrabber;
+import evmtesttool.core.Account;
+import evmtesttool.core.StateTest;
+import evmtesttool.core.Trace;
+import evmtesttool.core.Transaction;
+import evmtesttool.core.WorldState;
+import evmtesttool.util.Hex;
+import evmtesttool.util.StreamGrabber;
 
 /**
  * An interface to Geth's command-line <code>evm</code> tool. This allows us to

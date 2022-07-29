@@ -31,8 +31,8 @@ import org.json.JSONObject;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import evmtesttools.core.*;
-import evmtesttools.evms.Geth;
+import evmtesttool.core.*;
+import evmtesttool.evms.Geth;
 
 /**
  * A test runner for executing the <code>GeneralStateTests</code> provided as
@@ -94,12 +94,11 @@ public class GeneralStateTests {
 	 */
 	private static void runTest(String name, WorldState state, Transaction tx) throws JSONException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
-		Trace t = geth.execute(state, tx);
+		Trace trace = geth.execute(state, tx);
 		// Test can convert transaction to JSON, and then back again.
-		ProfiledStateTest txt1 = new ProfiledStateTest(name,state,tx,t);
-		ProfiledStateTest txt2 = ProfiledStateTest.fromJSON(txt1.toJSON());
-		// Make sure results match!
-		assertEquals(txt1, txt2);
+		assertEquals(state, WorldState.fromJSON(state.toJSON()));
+		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
+		assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 
 	/**
