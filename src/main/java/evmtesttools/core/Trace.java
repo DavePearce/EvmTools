@@ -44,8 +44,44 @@ public class Trace {
 	}
 
 	@Override
+	public boolean equals(Object o) {
+		if(o instanceof Trace) {
+			Trace t = (Trace) o;
+			return elements.equals(t.elements);
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return elements.hashCode();
+	}
+
+
+	@Override
 	public String toString() {
 		return elements.toString();
+	}
+
+	/**
+	 * Convert this trace into JSON.
+	 *
+	 * @return
+	 */
+	public JSONArray toJSON() throws JSONException {
+		JSONArray arr = new JSONArray();
+		for(int i=0;i!=elements.size();++i) {
+			arr.put(i, elements.get(i).toJSON());
+		}
+		return arr;
+	}
+
+	public static Trace fromJSON(JSONArray json) throws JSONException {
+		ArrayList<Element> elements = new ArrayList<>();
+		for (int i = 0; i != json.length(); ++i) {
+			elements.add(Element.fromJSON(json.getJSONObject(i)));
+		}
+		return new Trace(elements);
 	}
 
 	/**
@@ -55,6 +91,11 @@ public class Trace {
 	 *
 	 */
 	public static interface Element {
+		/**
+		 * Convert a trace element into JSON.
+		 * @return
+		 */
+		public JSONObject toJSON() throws JSONException;
 
 		/**
 		 * Convert a <code>JSON</code> object into a <code>Trace</code> object. An
@@ -138,6 +179,19 @@ public class Trace {
 				return String.format("{pc=%d, stack=%s}\n", pc, s);
 			}
 		}
+
+		@Override
+		public JSONObject toJSON() throws JSONException {
+			JSONObject json = new JSONObject();
+			json.put("pc", pc);
+			json.put("stack", toStackArray(stack));
+			if(memory.length != 0) {
+				// Only include if something to show.
+				json.put("memory", Hex.toHexString(memory));
+			}
+			// FIXME: include storage
+			return json;
+		}
 	}
 
 	/**
@@ -169,6 +223,13 @@ public class Trace {
 		public int hashCode() {
 			return Arrays.hashCode(data);
 		}
+
+		@Override
+		public JSONObject toJSON() throws JSONException {
+			JSONObject json = new JSONObject();
+			json.put("output",Hex.toHexString(data));
+			return json;
+		}
 	}
 
 	/**
@@ -199,6 +260,14 @@ public class Trace {
 		public int hashCode() {
 			return Arrays.hashCode(data);
 		}
+
+		@Override
+		public JSONObject toJSON() throws JSONException {
+			JSONObject json = new JSONObject();
+			json.put("error","execution reverted");
+			json.put("output",Hex.toHexString(data));
+			return json;
+		}
 	}
 
 	/**
@@ -224,13 +293,29 @@ public class Trace {
 		public int hashCode() {
 			return 0;
 		}
+
+		@Override
+		public JSONObject toJSON() throws JSONException {
+			JSONObject json = new JSONObject();
+			json.put("error","");
+			json.put("output","");
+			return json;
+		}
 	}
 
 	private static BigInteger[] parseStackArray(JSONArray arr) throws JSONException {
 		BigInteger[] is = new BigInteger[arr.length()];
-		for (int i = 0, j = is.length - 1; i != is.length; ++i, --j) {
-			is[j] = Hex.toBigInt(arr.getString(i));
+		for (int i = 0; i != is.length; ++i) {
+			is[i] = Hex.toBigInt(arr.getString(i));
 		}
 		return is;
+	}
+
+	private static JSONArray toStackArray(BigInteger[] stack) throws JSONException {
+		JSONArray arr = new JSONArray();
+		for (int i = 0; i != stack.length; ++i) {
+			arr.put(i,Hex.toHexString(stack[i]));
+		}
+		return arr;
 	}
 }

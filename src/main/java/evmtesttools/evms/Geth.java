@@ -31,7 +31,9 @@ import evmtesttools.core.Account;
 import evmtesttools.core.StateTest;
 import evmtesttools.core.Trace;
 import evmtesttools.core.Transaction;
+import evmtesttools.core.WorldState;
 import evmtesttools.util.Hex;
+import evmtesttools.util.StreamGrabber;
 
 /**
  * An interface to Geth's command-line <code>evm</code> tool. This allows us to
@@ -64,7 +66,7 @@ public class Geth {
 	 * @param tx
 	 * @return
 	 */
-	public Trace execute(Map<BigInteger, Account> pre, Transaction tx) throws JSONException {
+	public Trace execute(WorldState pre, Transaction tx) throws JSONException {
 		try {
 			// Build up the command
 			ArrayList<String> command = new ArrayList<>();
@@ -97,16 +99,21 @@ public class Geth {
 		// Construct the process
 		// ===================================================
 		ProcessBuilder builder = new ProcessBuilder(command);
+		StringBuffer syserr = new StringBuffer();
+		StringBuffer sysout = new StringBuffer();
 		Process child = builder.start();
 		try {
+			// NOTE: the stream grabbers are required to prevent internal buffers from
+			// getting full. Since some of the trace output for state tests is very large,
+			// this is a real issue we encounter. That is, if we just wait for the process
+			// to exit then read everything from its inputstream ... well, this won't work.
+			new StreamGrabber(child.getErrorStream(), syserr);
+			new StreamGrabber(child.getInputStream(), sysout);
 			// second, read the result whilst checking for a timeout
-			InputStream input = child.getInputStream();
-			InputStream error = child.getErrorStream();
 			boolean success = child.waitFor(timeout, TimeUnit.MILLISECONDS);
-			byte[] stdout = readInputStream(input);
-			byte[] stderr = readInputStream(error);
 			if (success && child.exitValue() == 0) {
-				return new String(stdout);
+				// NOTE: should we do anything with syserr here?
+				return sysout.toString();
 			}
 		} finally {
 			// make sure child process is destroyed.
@@ -115,21 +122,4 @@ public class Geth {
 		// Failure
 		return null;
 	}
-
-	/**
-     * Read an input stream entirely into a byte array.
-     *
-     * @param input
-     * @return
-     * @throws IOException
-     */
-    private static byte[] readInputStream(InputStream input) throws IOException {
-        byte[] buffer = new byte[32768];
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        while (input.available() > 0) {
-            int count = input.read(buffer);
-            output.write(buffer, 0, count);
-        }
-        return output.toByteArray();
-    }
 }

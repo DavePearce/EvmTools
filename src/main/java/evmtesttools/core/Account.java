@@ -16,6 +16,8 @@ package evmtesttools.core;
 import java.math.BigInteger;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Arrays;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -34,6 +36,40 @@ public class Account {
 		this.nonce = nonce;
 		this.storage = new HashMap<>(storage);
 		this.code = code;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if(o instanceof Account) {
+			Account a = (Account) o;
+			return balance.equals(a.balance) && nonce.equals(a.nonce) && storage.equals(a.storage)
+					&& Arrays.equals(code, a.code);
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(balance,nonce,storage) ^ Arrays.hashCode(code);
+	}
+
+	/**
+	 * Convert account information into JSON.
+	 *
+	 * @return
+	 * @throws JSONException
+	 */
+	public JSONObject toJSON() throws JSONException {
+		JSONObject json = new JSONObject();
+		json.put("balance", Hex.toHexString(balance));
+		json.put("nonce", Hex.toHexString(nonce));
+		JSONObject st = new JSONObject();
+		for (Map.Entry<BigInteger, BigInteger> e : storage.entrySet()) {
+			st.put(Hex.toHexString(e.getKey()), Hex.toHexString(e.getValue()));
+		}
+		json.put("storage", st);
+		json.put("code", Hex.toHexString(code));
+		return json;
 	}
 
 	/**

@@ -14,7 +14,9 @@
 package evmtesttools.core;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.Objects;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -96,7 +98,7 @@ public class Transaction {
 	 * @param worldState
 	 * @return
 	 */
-	public byte[] getCode(Map<BigInteger, Account> worldState) {
+	public byte[] getCode(WorldState worldState) {
 		if (to == null) {
 			// NOTE: its not clear to me why this makes sense, but some of the ethereum
 			// reference tests are setup like this. Specifically, to allow them to be
@@ -105,6 +107,56 @@ public class Transaction {
 		} else {
 			return worldState.get(to).code;
 		}
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if(o instanceof Transaction) {
+			Transaction t = (Transaction) o;
+			return sender.equals(t.sender) && Objects.equals(to,t.to) && gasLimit.equals(t.gasLimit)
+					&& gasPrice.equals(t.gasPrice) && nonce.equals(t.nonce) && value.equals(t.value)
+					&& Arrays.equals(data, t.data);
+		}
+		return false;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(sender, to, gasLimit, gasPrice, nonce, value) ^ Arrays.hashCode(data);
+	}
+
+	/**
+	 * Convert transaction information into JSON.
+	 *
+	 * @return
+	 * @throws JSONException
+	 */
+	public JSONObject toJSON() throws JSONException {
+		JSONObject json = new JSONObject();
+		json.put("sender",Hex.toHexString(sender));
+		if(to == null) {
+			json.put("to","");
+		} else {
+			json.put("to",Hex.toHexString(to));
+		}
+		json.put("gasLimit",Hex.toHexString(gasLimit));
+		json.put("gasPrice",Hex.toHexString(gasPrice));
+		json.put("nonce",Hex.toHexString(nonce));
+		json.put("value",Hex.toHexString(value));
+		json.put("data",Hex.toHexString(data));
+		return json;
+	}
+
+	public static Transaction fromJSON(JSONObject json) throws JSONException {
+		BigInteger sender = Hex.toBigInt(json.getString("sender"));
+		String _to = json.getString("to");
+		BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
+		BigInteger gasLimit = Hex.toBigInt(json.getString("gasLimit"));
+		BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
+		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
+		BigInteger value = Hex.toBigInt(json.getString("value"));
+		byte[] data = Hex.toBytes(json.getString("data"));
+		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data, null);
 	}
 
 	/**

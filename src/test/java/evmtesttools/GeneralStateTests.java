@@ -13,6 +13,9 @@
  */
 package evmtesttools;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 import java.math.BigInteger;
 import java.nio.file.Files;
@@ -74,7 +77,8 @@ public class GeneralStateTests {
 	@ParameterizedTest
 	@MethodSource("allTestFiles")
 	public void tests(StateTest.Instance instance) throws IOException, JSONException {
-		runTest(instance.getWorldState(),instance.instantiate());
+		//
+		runTest(instance.getName(),instance.getWorldState(),instance.instantiate());
 	}
 
 	// Here we enumerate all available test cases.
@@ -88,9 +92,14 @@ public class GeneralStateTests {
 	 *
 	 * @param i
 	 */
-	private static void runTest(Map<BigInteger, Account> worldState, Transaction tx) throws JSONException {
+	private static void runTest(String name, WorldState state, Transaction tx) throws JSONException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
-		Trace t = geth.execute(worldState, tx);
+		Trace t = geth.execute(state, tx);
+		// Test can convert transaction to JSON, and then back again.
+		ProfiledStateTest txt1 = new ProfiledStateTest(name,state,tx,t);
+		ProfiledStateTest txt2 = ProfiledStateTest.fromJSON(txt1.toJSON());
+		// Make sure results match!
+		assertEquals(txt1, txt2);
 	}
 
 	/**

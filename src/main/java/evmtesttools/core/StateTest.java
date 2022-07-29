@@ -56,7 +56,7 @@ public class StateTest {
 	/**
 	 * Defines the genesis information for the state test.
 	 */
-	private final Map<BigInteger,Account> pre;
+	private final WorldState pre;
 	/**
 	 * Provides necessary specifics for the transaction to be executed. Observe this
 	 * is a <i>template</i> and not a concrete transaction. Thus, we must
@@ -64,7 +64,7 @@ public class StateTest {
 	 */
 	private final Transaction.Template transaction;
 
-	public StateTest(String name, Map<String,List<Instance>> instances, Map<BigInteger,Account> pre, Transaction.Template tx) {
+	public StateTest(String name, Map<String,List<Instance>> instances, WorldState pre, Transaction.Template tx) {
 		this.name = name;
 		this.instances = instances;
 		this.pre = pre;
@@ -92,7 +92,7 @@ public class StateTest {
 	 *
 	 * @return
 	 */
-	public Map<BigInteger,Account> getPreState() {
+	public WorldState getPreState() {
 		return pre;
 	}
 
@@ -167,7 +167,7 @@ public class StateTest {
 			// Parse transaction template
 			Transaction.Template template = Transaction.Template.fromJSON(ith.getJSONObject("transaction"));
 			// Parse world state
-			Map<BigInteger, Account> worldstate = parsePreState(ith.getJSONObject("pre"));
+			WorldState worldstate = WorldState.fromJSON(ith.getJSONObject("pre"));
 			// Parse state test info
 			Map<String, List<StateTest.Instance>> instances = parsePostState(ith.getJSONObject("post"));
 			// Done
@@ -175,16 +175,6 @@ public class StateTest {
 		}
 		// Done
 		return tests;
-	}
-
-	public static Map<BigInteger, Account> parsePreState(JSONObject json) throws JSONException {
-		HashMap<BigInteger, Account> world = new HashMap<>();
-		for (String addr : JSONObject.getNames(json)) {
-			JSONObject contents = json.getJSONObject(addr);
-			BigInteger hexAddr = Hex.toBigInt(addr);
-			world.put(hexAddr, Account.fromJSON(contents));
-		}
-		return world;
 	}
 
 	public static Map<String, List<StateTest.Instance>> parsePostState(JSONObject json) throws JSONException {
@@ -220,12 +210,19 @@ public class StateTest {
 			this.expect = expect;
 		}
 
+		public String getName() {
+			int g = indexes.get("gas");
+			int d = indexes.get("data");
+			int v = indexes.get("value");
+			return String.format("%s_%s_%d_%d_%d",parent.getName(),fork,g,d,v);
+		}
+
 		/**
 		 * Get the world state that should hold before this instance executes.
 		 *
 		 * @return
 		 */
-		public Map<BigInteger, Account> getWorldState() {
+		public WorldState getWorldState() {
 			return parent.pre;
 		}
 
@@ -240,10 +237,7 @@ public class StateTest {
 
 		@Override
 		public String toString() {
-			int g = indexes.get("gas");
-			int d = indexes.get("data");
-			int v = indexes.get("value");
-			return String.format("%s_%s_%d_%d_%d",parent.getName(),fork,g,d,v);
+			return getName();
 		}
 
 		public static Instance fromJSON(String fork, JSONObject json) throws JSONException {
