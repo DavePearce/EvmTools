@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttool.util;
+package evmtools.util;
 
 import java.io.IOException;
 import java.io.InputStream;

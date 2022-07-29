@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttools;
+package evmtools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,8 +31,8 @@ import org.json.JSONObject;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import evmtesttool.core.*;
-import evmtesttool.evms.Geth;
+import evmtools.core.*;
+import evmtools.evms.Geth;
 
 /**
  * A test runner for executing the <code>GeneralStateTests</code> provided as

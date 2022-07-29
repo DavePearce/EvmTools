@@ -11,20 +11,26 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttool.core;
+package evmtools.core;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttool.core.Transaction.Expectation;
+import evmtools.core.StateTest.Instance;
+import evmtools.core.Transaction.Expectation;
 
 public class TraceTest {
+	/**
+	 * Every individual test has a name.
+	 */
+	private final String name;
 	/**
 	 * Defines the genesis information for the state test.
 	 */
@@ -34,9 +40,20 @@ public class TraceTest {
 	 */
 	private final Map<String,List<Instance>> forks;
 
-	public TraceTest(WorldState state, Map<String, List<Instance>> instances) {
+	public TraceTest(String name, WorldState state, Map<String, List<Instance>> instances) {
+		this.name = name;
 		this.state = state;
 		this.forks = instances;
+		// Associate each instance with this test
+		for(List<Instance> is : instances.values()) {
+			for(Instance i : is) {
+				i.parent = this;
+			}
+		}
+	}
+
+	public WorldState getWorldState() {
+		return state;
 	}
 
 	@Override
@@ -46,6 +63,14 @@ public class TraceTest {
 		} catch (JSONException e) {
 			return null;
 		}
+	}
+
+	public Set<String> getForks() {
+		return forks.keySet();
+	}
+
+	public List<Instance> getInstances(String fork) {
+		return forks.get(fork);
 	}
 
 	/**
@@ -77,7 +102,7 @@ public class TraceTest {
 	 * @param json
 	 * @return
 	 */
-	public static TraceTest fromJSON(JSONObject json) throws JSONException {
+	public static TraceTest fromJSON(String name, JSONObject json) throws JSONException {
 		WorldState state = WorldState.fromJSON(json.getJSONObject("pre"));
 		JSONObject tests = json.getJSONObject("tests");
 		Map<String,List<Instance>> forks = new HashMap<>();
@@ -90,10 +115,11 @@ public class TraceTest {
 			}
 			forks.put(fork,instances);
 		}
-		return new TraceTest(state, forks);
+		return new TraceTest(name, state, forks);
 	}
 
 	public static class Instance {
+		private TraceTest parent;
 		private final Transaction transaction;
 		private final Trace trace;
 		private final Transaction.Expectation expectation;
@@ -102,6 +128,24 @@ public class TraceTest {
 			this.transaction = transaction;
 			this.trace = trace;
 			this.expectation = expectation;
+		}
+
+		public WorldState getWorldState() {
+			return parent.getWorldState();
+		}
+
+		public Transaction getTransaction() {
+			return transaction;
+		}
+
+		public Trace getTrace() {
+			return trace;
+		}
+
+		@Override
+		public String toString() {
+			int hash = transaction.hashCode();
+			return String.format("%s_%x",parent.name,hash);
 		}
 
 		public JSONObject toJSON() throws JSONException {

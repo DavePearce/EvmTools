@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttool.core;
+package evmtools.core;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -23,7 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttool.util.Hex;
+import evmtools.util.Hex;
 
 public class Account {
 	public final BigInteger balance;

@@ -1,4 +1,4 @@
-package evmtesttool.core;
+package evmtools.core;
 
 import java.math.BigInteger;
 import java.util.HashMap;
@@ -7,7 +7,7 @@ import java.util.Map;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttool.util.Hex;
+import evmtools.util.Hex;
 
 public class WorldState {
 	private final Map<BigInteger, Account> state;

@@ -11,7 +11,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-package evmtesttool;
+package evmtools;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -27,12 +27,12 @@ import org.apache.commons.cli.*;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtesttool.core.StateTest;
-import evmtesttool.core.Trace;
-import evmtesttool.core.TraceTest;
-import evmtesttool.core.Transaction;
-import evmtesttool.core.WorldState;
-import evmtesttool.evms.Geth;
+import evmtools.core.StateTest;
+import evmtools.core.Trace;
+import evmtools.core.TraceTest;
+import evmtools.core.Transaction;
+import evmtools.core.WorldState;
+import evmtools.evms.Geth;
 
 public class Main {
 	private final Path inFile;
@@ -89,7 +89,7 @@ public class Main {
 					}
 				}
 			}
-			TraceTest tt = new TraceTest(state, forks);
+			TraceTest tt = new TraceTest(st.getName(), state, forks);
 			json.put(st.getName(),tt.toJSON());
 		}
 		return json;
