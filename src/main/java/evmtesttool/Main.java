@@ -14,9 +14,7 @@
 package evmtesttool;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,7 +24,6 @@ import java.util.Map;
 import java.util.function.BiPredicate;
 
 import org.apache.commons.cli.*;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -85,7 +82,7 @@ public class Main {
 						Transaction tx = inst.instantiate();
 						Trace t = geth.execute(state, tx);
 						// Test can convert transaction to JSON, and then back again.
-						instances.add(new TraceTest.Instance(tx, t, tx.expectation));
+						instances.add(new TraceTest.Instance(tx, t, inst.expect));
 					}
 					if (instances.size() != 0) {
 						forks.put(fork, instances);

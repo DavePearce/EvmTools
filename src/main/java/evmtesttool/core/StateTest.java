@@ -147,21 +147,6 @@ public class StateTest {
 	}
 
 	/**
-	 * Get an iterator over all concrete transactions described by this state test
-	 * meeting a certain criteria (e.g. fork).
-	 *
-	 * @param p    Predicate to test with, where first parameter is the fork and
-	 *             second provides the instance details.
-	 *
-	 * @param fork
-	 * @return
-	 */
-	public Iterable<Transaction> instantiate(BiPredicate<String, Instance> p) {
-		return selectInstances(p).stream().map(i -> transaction.instantiate(i.expect, i.indexes))
-				.collect(Collectors.toList());
-	}
-
-	/**
 	 * Read a state test encoded in JSON producing a list of state test.
 	 *
 	 * @param json
@@ -241,7 +226,7 @@ public class StateTest {
 		 * @return
 		 */
 		public Transaction instantiate() {
-			return parent.transaction.instantiate(expect, indexes);
+			return parent.transaction.instantiate(indexes);
 		}
 
 		@Override

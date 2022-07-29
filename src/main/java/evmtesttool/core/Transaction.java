@@ -78,10 +78,9 @@ public class Transaction {
 	 * The expected outcome from executing this transaction (e.g. normal execution,
 	 * revert, etc).
 	 */
-	public final Expectation expectation;
 
 	public Transaction(BigInteger sender, BigInteger to, BigInteger gasLimit, BigInteger gasPrice, BigInteger nonce,
-			BigInteger value, byte[] data, Expectation expectation) {
+			BigInteger value, byte[] data) {
 		this.sender = sender;
 		this.to = to;
 		this.gasLimit = gasLimit;
@@ -89,7 +88,6 @@ public class Transaction {
 		this.nonce = nonce;
 		this.value = value;
 		this.data = data;
-		this.expectation = expectation;
 	}
 
 	/**
@@ -156,7 +154,7 @@ public class Transaction {
 		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 		BigInteger value = Hex.toBigInt(json.getString("value"));
 		byte[] data = Hex.toBytes(json.getString("data"));
-		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data, null);
+		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data);
 	}
 
 	/**
@@ -179,7 +177,7 @@ public class Transaction {
 				BigInteger[] values, byte[][] datas) {
 			// Create the "templated" transaction which has empty slots for the
 			// parameterised values.
-			this.template = new Transaction(sender,to,null,gasPrice,nonce,null,null,null);
+			this.template = new Transaction(sender,to,null,gasPrice,nonce,null,null);
 			this.gasLimits = gasLimits;
 			this.values = values;
 			this.datas = datas;
@@ -194,12 +192,12 @@ public class Transaction {
 		 * @param value
 		 * @return
 		 */
-		public Transaction instantiate(Expectation expectation, Map<String, Integer> indices) {
+		public Transaction instantiate(Map<String, Integer> indices) {
 			int g = indices.get("gas");
 			int d = indices.get("data");
 			int v = indices.get("value");
 			return new Transaction(template.sender, template.to, gasLimits[g], template.gasPrice, template.nonce,
-					values[v], datas[d], expectation);
+					values[v], datas[d]);
 		}
 
 		/**
