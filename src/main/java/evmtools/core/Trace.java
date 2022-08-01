@@ -16,6 +16,8 @@ package evmtools.core;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 
 import org.json.JSONArray;
@@ -131,8 +133,14 @@ public class Trace {
 				// Memory is not usually reported until it is actually assigned something.
 				byte[] memory = Hex.toBytes(json.optString("memory", "0x"));
 				BigInteger[] stack = parseStackArray(json.getJSONArray("stack"));
+				Map<BigInteger, BigInteger> storage;
+				if (json.has("storage")) {
+					storage = parseStorageMap(json.getJSONObject("storage"));
+				} else {
+					storage = new HashMap<>();
+				}
 				//
-				return new Trace.Step(pc, stack, memory);
+				return new Trace.Step(pc, stack, memory, storage);
 			}
 		}
 	}
@@ -147,19 +155,21 @@ public class Trace {
 		public final int pc;
 		public final BigInteger[] stack;
 		public final byte[] memory;
+		public final HashMap<BigInteger,BigInteger> storage;
 		// FIXME: support storage!
 
-		public Step(int pc, BigInteger[] stack, byte[] memory) {
+		public Step(int pc, BigInteger[] stack, byte[] memory, Map<BigInteger,BigInteger> storage) {
 			this.pc = pc;
 			this.stack = stack;
 			this.memory = memory;
+			this.storage = new HashMap<>(storage);
 		}
 
 		@Override
 		public boolean equals(Object o) {
 			if(o instanceof Step) {
 				Step s = (Step) o;
-				return pc == s.pc && Arrays.equals(stack, s.stack) && Arrays.equals(memory, s.memory);
+				return pc == s.pc && Arrays.equals(stack, s.stack) && Arrays.equals(memory, s.memory) && storage.equals(s.storage);
 			}
 			return false;
 		}
@@ -172,9 +182,14 @@ public class Trace {
 		@Override
 		public String toString() {
 			String s = Arrays.toString(stack);
-			if(memory.length > 0) {
-				String m = Hex.toHexString(memory);
+			String st = storage.toString();
+			String m = Hex.toHexString(memory);
+			if(memory.length > 0 && storage.size() > 0) {
+				return String.format("{pc=%d, stack=%s, memory=%s, storage=%s}\n", pc, s, m, st);
+			} else if(memory.length > 0) {
 				return String.format("{pc=%d, stack=%s, memory=%s}\n", pc, s, m);
+			} else if(storage.size() > 0) {
+				return String.format("{pc=%d, stack=%s, storage=%s}\n", pc, s, st);
 			} else {
 				return String.format("{pc=%d, stack=%s}\n", pc, s);
 			}
@@ -188,6 +203,14 @@ public class Trace {
 			if(memory.length != 0) {
 				// Only include if something to show.
 				json.put("memory", Hex.toHexString(memory));
+			}
+			if(storage.size() != 0) {
+				// Only include if something to show.
+				JSONObject st = new JSONObject();
+				for (Map.Entry<BigInteger, BigInteger> e : storage.entrySet()) {
+					st.put(Hex.toHexString(e.getKey()), Hex.toHexString(e.getValue()));
+				}
+				json.put("storage", st);
 			}
 			// FIXME: include storage
 			return json;
@@ -317,5 +340,18 @@ public class Trace {
 			arr.put(i,Hex.toHexString(stack[i]));
 		}
 		return arr;
+	}
+
+	private static Map<BigInteger, BigInteger> parseStorageMap(JSONObject json) throws JSONException {
+		if (json == null) {
+			return new HashMap<>();
+		} else {
+			HashMap<BigInteger, BigInteger> r = new HashMap<>();
+			for (String addr : JSONObject.getNames(json)) {
+				BigInteger value = Hex.toBigInt(json.getString(addr));
+				r.put(Hex.toBigInt(addr), value);
+			}
+			return r;
+		}
 	}
 }
