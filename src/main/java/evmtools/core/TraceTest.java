@@ -151,6 +151,10 @@ public class TraceTest {
 			return trace;
 		}
 
+		public Transaction.Expectation getExpectation() {
+			return expectation;
+		}
+
 		@Override
 		public String toString() {
 			int hash = transaction.hashCode();

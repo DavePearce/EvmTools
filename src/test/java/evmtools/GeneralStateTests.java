@@ -102,29 +102,6 @@ public class GeneralStateTests {
 		assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 
-	/**
-	 * Determine whether this test should be ignore because (for some reason) it is
-	 * considered out of scope of the Dafny EVM. This might be due to missing
-	 * features (which, eventually, will be implemeted). Or, it might because of
-	 * something more fundamental (e.g. something this testing framework cannot
-	 * handle).
-	 *
-	 * @param expect
-	 * @return
-	 */
-	private static boolean isIgnored(Transaction.Expectation expect) {
-		// NOTE: at the moment, the Dafny EVM does not support gas in any form and,
-		// therefore, cannot detect out-of-gas errors. Thus, for now, we simply ignore
-		// them.
-		switch (expect) {
-		case IntrinsicGas:
-		case OutOfGas:
-			return true;
-		default:
-			return false;
-		}
-	}
-
 	// ======================================================================
 	// Data sources
 	// ======================================================================
