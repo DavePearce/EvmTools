@@ -32,7 +32,7 @@ repositories {
 }
 
 group = 'org.whiley'
-version = '0.1'
+version = '0.3'
 
 java {
     withJavadocJar()
@@ -56,8 +56,8 @@ dependencies {
 // ======================================================================
 
 application {
-    mainClass = 'evmtesttool.Main'
-    applicationName = 'evmtesttool'
+    mainClass = 'evmtools.Main'
+    applicationName = 'evmtools'
 }
 
 // ======================================================================
@@ -67,14 +67,22 @@ application {
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            from components.java
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
             pom {
-                // groupId='org.whiley'
-                // version='0.1'                
-                artifactId='evmtesttools'
-                name = 'EVM Test Tools'
+                artifactId='evmtools'
+                name = 'EVM Tools'
                 description = 'A tool for generating reference tests with full trace data.'
+                url = 'https://github.com/DavePearce/EvmTools'                
                 scm {
-                    url = 'https://github.com/DavePearce/EvmTestTools'
+                    url = 'https://github.com/DavePearce/EvmTools'
                 }
                 
                 licenses {

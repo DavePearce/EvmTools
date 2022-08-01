@@ -78,7 +78,6 @@ public class Main {
 				ArrayList<TraceTest.Instance> instances = new ArrayList<>();
 				for (StateTest.Instance inst : st.getInstances(fork)) {
 					if (filter.test(fork, inst)) {
-						System.out.println("Generating test " + inst);
 						Transaction tx = inst.instantiate();
 						Trace t = geth.execute(state, tx);
 						// Test can convert transaction to JSON, and then back again.
@@ -116,7 +115,7 @@ public class Main {
 			return parser.parse(options, args);  //it will parse according to the options and parse option value
 		} catch (ParseException e) {
 			System.out.println(e.getMessage());
-			formatter.printHelp("evmtesttool", options);
+			formatter.printHelp("evmtool", options);
 			System.exit(1);
 			return null;
 		}
@@ -139,7 +138,6 @@ public class Main {
 			m = m.setPrettify(true);
 		}
 		if(cmd.hasOption("fork")) {
-			System.out.println("SETTING FILTER");
 			String fork = cmd.getOptionValue("fork");
 			m.setFilter((f,i) -> f.equals(fork));
 		}
