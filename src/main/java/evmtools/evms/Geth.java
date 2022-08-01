@@ -78,8 +78,8 @@ public class Geth {
 			command.add("--json");
 			command.add("--input");
 			command.add(Hex.toHexString(tx.data));
-			command.add("--nomemory");
-			command.add("--nostorage");
+			command.add("--nomemory=false");
+			command.add("--nostorage=false");
 			command.add("--prestate");
 			command.add(preStateFile);
 			command.add("--code");
