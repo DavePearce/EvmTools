@@ -13,6 +13,7 @@
  */
 package evmtools.core;
 
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -69,6 +70,10 @@ public class TraceTest {
 		return forks.keySet();
 	}
 
+	public boolean hasInstances(String fork) {
+		return forks.containsKey(fork);
+	}
+
 	public List<Instance> getInstances(String fork) {
 		return forks.get(fork);
 	}
@@ -106,14 +111,18 @@ public class TraceTest {
 		WorldState state = WorldState.fromJSON(json.getJSONObject("pre"));
 		JSONObject tests = json.getJSONObject("tests");
 		Map<String,List<Instance>> forks = new HashMap<>();
-
-		for(String fork : JSONObject.getNames(tests)) {
-			JSONArray is = tests.getJSONArray(fork);
-			ArrayList<Instance> instances = new ArrayList<>();
-			for(int i=0;i!=is.length();++i) {
-				instances.add(Instance.fromJSON(is.getJSONObject(i)));
+		String[] names = JSONObject.getNames(tests);
+		if(names != null) {
+			// NOTE: names can be null when the test map is empty (which itself can arise if
+			// there were no forks of interest in the original state test).
+			for(String fork : names) {
+				JSONArray is = tests.getJSONArray(fork);
+				ArrayList<Instance> instances = new ArrayList<>();
+				for(int i=0;i!=is.length();++i) {
+					instances.add(Instance.fromJSON(is.getJSONObject(i)));
+				}
+				forks.put(fork,instances);
 			}
-			forks.put(fork,instances);
 		}
 		return new TraceTest(name, state, forks);
 	}

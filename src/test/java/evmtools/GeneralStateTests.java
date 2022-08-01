@@ -77,8 +77,7 @@ public class GeneralStateTests {
 	@ParameterizedTest
 	@MethodSource("allTestFiles")
 	public void tests(StateTest.Instance instance) throws IOException, JSONException {
-		//
-		runTest(instance.getName(),instance.getWorldState(),instance.instantiate());
+		runTest(instance.getName(), instance.getEnvironment(), instance.getWorldState(), instance.instantiate());
 	}
 
 	// Here we enumerate all available test cases.
@@ -92,9 +91,9 @@ public class GeneralStateTests {
 	 *
 	 * @param i
 	 */
-	private static void runTest(String name, WorldState state, Transaction tx) throws JSONException {
+	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
-		Trace trace = geth.execute(state, tx);
+		Trace trace = geth.execute(env, state, tx);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
@@ -155,6 +154,8 @@ public class GeneralStateTests {
 				} catch(JSONException e) {
 					System.out.println("Problem parsing file into JSON (" + f + ")");
 				} catch(IOException e) {
+					System.out.println("Problem reading file (" + f + ")");
+				} catch(Exception e) {
 					System.out.println("Problem reading file (" + f + ")");
 				}
 			}

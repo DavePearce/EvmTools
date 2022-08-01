@@ -58,16 +58,21 @@ public class StateTest {
 	 */
 	private final WorldState pre;
 	/**
+	 * Various environmental parameters (e.g. difficulty).
+	 */
+	private final Environment env;
+	/**
 	 * Provides necessary specifics for the transaction to be executed. Observe this
 	 * is a <i>template</i> and not a concrete transaction. Thus, we must
 	 * instantiate it with one or more instances.
 	 */
 	private final Transaction.Template transaction;
 
-	public StateTest(String name, Map<String,List<Instance>> instances, WorldState pre, Transaction.Template tx) {
+	public StateTest(String name, Map<String,List<Instance>> instances, WorldState pre, Environment env, Transaction.Template tx) {
 		this.name = name;
 		this.instances = instances;
 		this.pre = pre;
+		this.env = env;
 		this.transaction = tx;
 		// Associate each instance with this test
 		for(List<Instance> is : instances.values()) {
@@ -94,6 +99,16 @@ public class StateTest {
 	 */
 	public WorldState getPreState() {
 		return pre;
+	}
+
+	/**
+	 * Get the current environment which defines various parameters (e.g.
+	 * difficulty).
+	 *
+	 * @return
+	 */
+	public Environment getEnvironment() {
+		return env;
 	}
 
 	/**
@@ -162,10 +177,12 @@ public class StateTest {
 			Transaction.Template template = Transaction.Template.fromJSON(ith.getJSONObject("transaction"));
 			// Parse world state
 			WorldState worldstate = WorldState.fromJSON(ith.getJSONObject("pre"));
+			// Parse environment
+			Environment env = Environment.fromJSON(ith.getJSONObject("env"));
 			// Parse state test info
 			Map<String, List<StateTest.Instance>> instances = parsePostState(ith.getJSONObject("post"));
 			// Done
-			tests.add(new StateTest(testname, instances, worldstate, template));
+			tests.add(new StateTest(testname, instances, worldstate, env, template));
 		}
 		// Done
 		return tests;
@@ -218,6 +235,16 @@ public class StateTest {
 		 */
 		public WorldState getWorldState() {
 			return parent.pre;
+		}
+
+		/**
+		 * Get the current environment which defines various parameters (e.g.
+		 * difficulty).
+		 *
+		 * @return
+		 */
+		public Environment getEnvironment() {
+			return parent.env;
 		}
 
 		/**

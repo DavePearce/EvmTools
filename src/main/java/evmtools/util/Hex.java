@@ -79,6 +79,13 @@ public class Hex {
 	 * @return
 	 */
 	public static String toHexString(BigInteger i) {
-		return "0x" + i.toString(16);
+		String s = i.toString(16);
+		// NOTE: this just ensures the length of the string is even, as Geth appears to
+		// require this.
+		if((s.length() % 2) != 0) {
+			return "0x0" + s;
+		} else {
+			return "0x" + s;
+		}
 	}
 }

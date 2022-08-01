@@ -15,6 +15,7 @@ package evmtools.evms;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -28,6 +29,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import evmtools.core.Account;
+import evmtools.core.Environment;
 import evmtools.core.StateTest;
 import evmtools.core.Trace;
 import evmtools.core.Transaction;
@@ -66,12 +68,20 @@ public class Geth {
 	 * @param tx
 	 * @return
 	 */
-	public Trace execute(WorldState pre, Transaction tx) throws JSONException {
+	public Trace execute(Environment env, WorldState pre, Transaction tx) throws JSONException {
+		String preStateFile = null;
 		try {
+			preStateFile = createPreStateFile(env,pre,tx);
 			// Build up the command
 			ArrayList<String> command = new ArrayList<>();
 			command.add(cmd);
 			command.add("--json");
+			command.add("--input");
+			command.add(Hex.toHexString(tx.data));
+			command.add("--nomemory");
+			command.add("--nostorage");
+			command.add("--prestate");
+			command.add(preStateFile);
 			command.add("--code");
 			command.add(Hex.toHexString(tx.getCode(pre)));
 			command.add("run");
@@ -91,6 +101,11 @@ public class Geth {
 			return null;
 		} catch (InterruptedException e) {
 			return null;
+		} finally {
+//			if (preStateFile != null) {
+//				// delete the temporary file
+//				new File(preStateFile).delete();
+//			}
 		}
 	}
 
@@ -114,6 +129,8 @@ public class Geth {
 			if (success && child.exitValue() == 0) {
 				// NOTE: should we do anything with syserr here?
 				return sysout.toString();
+			} else {
+				System.err.println(syserr);
 			}
 		} finally {
 			// make sure child process is destroyed.
@@ -122,4 +139,35 @@ public class Geth {
 		// Failure
 		return null;
 	}
+
+	private static String createPreStateFile(Environment env, WorldState pre, Transaction tx)
+			throws JSONException, IOException, InterruptedException {
+		JSONObject json = tx.toJSON();
+		//
+		json.put("alloc",pre.toJSON());
+		json.put("difficulty", Hex.toHexString(env.difficulty));
+		//json.put("pre",pre.toJSON());
+		byte[] bytes = json.toString(2).getBytes();
+		return createTemporaryFile("geth_prestate", ".json", bytes);
+	}
+
+	/**
+     * Write a given string into a temporary file which can then be checked by boogie.
+     *
+     * @param contents
+     * @return
+     */
+    private static String createTemporaryFile(String prefix, String suffix, byte[] contents)
+            throws IOException, InterruptedException {
+        // Create new file
+        File f = File.createTempFile(prefix, suffix);
+        // Open for writing
+        FileOutputStream fout = new FileOutputStream(f);
+        // Write contents to file
+        fout.write(contents);
+        // Done creating file
+        fout.close();
+        //
+        return f.getAbsolutePath();
+    }
 }
