@@ -95,7 +95,7 @@ public class GeneralStateTests {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
 		Trace trace = geth.execute(env, state, tx);
 		//
-		System.out.println(trace);
+		//System.out.println(trace);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));

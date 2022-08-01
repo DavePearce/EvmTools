@@ -102,10 +102,10 @@ public class Geth {
 		} catch (InterruptedException e) {
 			return null;
 		} finally {
-//			if (preStateFile != null) {
-//				// delete the temporary file
-//				new File(preStateFile).delete();
-//			}
+			if (preStateFile != null) {
+				// delete the temporary file
+				new File(preStateFile).delete();
+			}
 		}
 	}
 
