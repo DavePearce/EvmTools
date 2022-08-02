@@ -15,6 +15,7 @@ package evmtools.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Grab everything produced by a given input stream until the End-Of-File (EOF)
@@ -29,10 +30,11 @@ import java.io.InputStream;
 public class StreamGrabber extends Thread {
 	private InputStream input;
 	private StringBuffer buffer;
+	private AtomicBoolean finished = new AtomicBoolean(false);
 
-	public StreamGrabber(InputStream input, StringBuffer buffer) {
+	public StreamGrabber(InputStream input) {
 		this.input = input;
-		this.buffer = buffer;
+		this.buffer = new StringBuffer();
 		start();
 	}
 
@@ -46,5 +48,17 @@ public class StreamGrabber extends Thread {
 			}
 		} catch (IOException ioe) {
 		}
+		this.finished.set(true);
+	}
+
+	public String get() {
+		while(!finished.get()) {
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+				// Ignore.
+			}
+		}
+		return buffer.toString();
 	}
 }

@@ -121,23 +121,21 @@ public class Geth {
 		// Construct the process
 		// ===================================================
 		ProcessBuilder builder = new ProcessBuilder(command);
-		StringBuffer syserr = new StringBuffer();
-		StringBuffer sysout = new StringBuffer();
 		Process child = builder.start();
 		try {
 			// NOTE: the stream grabbers are required to prevent internal buffers from
 			// getting full. Since some of the trace output for state tests is very large,
 			// this is a real issue we encounter. That is, if we just wait for the process
 			// to exit then read everything from its inputstream ... well, this won't work.
-			new StreamGrabber(child.getErrorStream(), syserr);
-			new StreamGrabber(child.getInputStream(), sysout);
+			StreamGrabber syserr = new StreamGrabber(child.getErrorStream());
+			StreamGrabber sysout = new StreamGrabber(child.getInputStream());
 			// second, read the result whilst checking for a timeout
 			boolean success = child.waitFor(timeout, TimeUnit.MILLISECONDS);
 			if (success && child.exitValue() == 0) {
 				// NOTE: should we do anything with syserr here?
-				return sysout.toString();
+				return sysout.get();
 			} else if (success) {
-				// System.err.println(syserr);
+				System.err.println(syserr);
 			} else {
 				throw new RuntimeException("timeout");
 			}
