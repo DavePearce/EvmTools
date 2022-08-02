@@ -14,6 +14,7 @@
 package evmtools.util;
 
 import java.math.BigInteger;
+import java.util.Arrays;
 
 public class Hex {
 
@@ -83,11 +84,7 @@ public class Hex {
 		String s = i.toString(16);
 		// NOTE: this just ensures the length of the string is even, as Geth appears to
 		// require this.
-		if((s.length() % 2) != 0) {
-			return "0x0" + s;
-		} else {
-			return "0x" + s;
-		}
+		return "0x" + s;
 	}
 
 	/**
@@ -111,5 +108,13 @@ public class Hex {
 			sb.append(s);
 			return sb.toString();
 		}
+	}
+
+	public static String toArrayString(BigInteger[] items) {
+		String[] r = new String[items.length];
+		for(int i=0;i!=items.length;++i) {
+			r[i] = toHexString(items[i]);
+		}
+		return Arrays.toString(r);
 	}
 }
