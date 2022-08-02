@@ -147,12 +147,12 @@ public class Main {
 			for (int i = 0; i != filenames.size(); ++i) {
 				String f = filenames.get(i);
 				System.out.print(YELLOW + "\r(" + i + "/" + filenames.size() + ") ");
-				System.out.print(RESET + f + " ... ");
+				System.out.print(RESET + f);
 				try {
 					run(cmd, dir, f);
 					System.out.println();
 				} catch (Exception e) {
-					System.out.println(RED + "[" + e.getMessage() + "]");
+					System.out.println(RED + " [" + e.getMessage() + "]");
 				}
 			}
 		} else {
