@@ -64,12 +64,13 @@ public class Hex {
 	 * @return
 	 */
 	public static String toHexString(byte... bytes) {
-		String r = "";
+		StringBuilder sb = new StringBuilder();
+		sb.append("0x");
 		for(int i=0;i!=bytes.length;++i) {
 			int b = bytes[i] & 0xff;
-			r = r + String.format("%02x",b);
+			sb.append(String.format("%02x",b));
 		}
-		return "0x" + r;
+		return sb.toString();
 	}
 
 	/**
@@ -86,6 +87,29 @@ public class Hex {
 			return "0x0" + s;
 		} else {
 			return "0x" + s;
+		}
+	}
+
+	/**
+	 * Convert a biginteger into a hexadecimal string which is of a certain length.
+	 *
+	 * @param bytes
+	 * @return
+	 */
+	public static String toHexString(BigInteger i, int len) {
+		String s = i.toString(16);
+		//
+		if (s.length() > len) {
+			throw new IllegalArgumentException("invalid hex string (too long)");
+		} else {
+			StringBuilder sb = new StringBuilder();
+			sb.append("0x");
+			len = len - s.length() + 2;
+			while (sb.length() < len) {
+				sb.append('0');
+			}
+			sb.append(s);
+			return sb.toString();
 		}
 	}
 }

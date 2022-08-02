@@ -87,16 +87,23 @@ public class Geth {
 			command.add("run");
 			//
 			String out = exec(command);
-			// Parse into JSON. Geth produces one line per trace element.
-			ArrayList<Trace.Element> elements = new ArrayList<>();
-			Scanner scanner = new Scanner(out);
-			while (scanner.hasNextLine()) {
-				String line = scanner.nextLine();
-				JSONObject element = new JSONObject(line);
-				elements.add(Trace.Element.fromJSON(element));
+			//
+			if(out != null) {
+				// Parse into JSON. Geth produces one line per trace element.
+				ArrayList<Trace.Element> elements = new ArrayList<>();
+				Scanner scanner = new Scanner(out);
+				while (scanner.hasNextLine()) {
+					String line = scanner.nextLine();
+					JSONObject element = new JSONObject(line);
+					elements.add(Trace.Element.fromJSON(element));
+				}
+				scanner.close();
+				return new Trace(elements);
+			} else {
+				// Geth failed for some reason, so dump the input to help debugging.
+				System.err.println(pre.toJSON().toString(2));
+				return null;
 			}
-			scanner.close();
-			return new Trace(elements);
 		} catch (IOException e) {
 			return null;
 		} catch (InterruptedException e) {
