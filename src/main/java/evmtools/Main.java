@@ -13,6 +13,7 @@
  */
 package evmtools;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Files;
@@ -36,13 +37,14 @@ import evmtools.evms.Geth;
 
 public class Main {
 	private final Path inFile;
-	private final PrintStream out = System.out;
+	private final PrintStream out;
 	private final int timeout = 10; // in seconds;
 	private boolean prettify = false;
 	private BiPredicate<String,StateTest.Instance> filter = (f,i) -> true;
 
-	public Main(String filename) {
-		this.inFile = Path.of(filename);
+	public Main(Path infile, PrintStream out) {
+		this.out = out;
+		this.inFile = infile;
 	}
 
 	private Main setPrettify(boolean flag) {
@@ -100,6 +102,8 @@ public class Main {
 
 	private static final Option[] OPTIONS = new Option[] {
 			// What options do we need?
+			new Option("dir", true, "Read all state tests from given dir"),
+			new Option("out", true, "Directory to write generate files"),
 			new Option("fork", true, "Restrict to a particular fork (e.g. 'Berlin')."),
 			new Option("prettify", false, "Output \"pretty\" json"),
 	};
@@ -124,23 +128,71 @@ public class Main {
 	public static void main(String[] args) throws IOException, JSONException {
 		// Parse command-line arguments.
 		CommandLine cmd = parseCommandLine(args);
-		// Continue processing remaining arguments.
-		args = cmd.getArgs();
 		//
-		for(String st : args) {
-			run(cmd,st);
+		if (cmd.hasOption("dir")) {
+			Path dir = Path.of(cmd.getOptionValue("dir"));
+			ArrayList<String> filenames = new ArrayList<>();
+			//
+			Files.walk(dir).forEach(f -> {
+				String fs = dir.relativize(f).toString();
+				if (fs.endsWith(".json")) {
+					filenames.add(fs);
+				}
+			});
+			//
+			for (int i = 0; i != filenames.size(); ++i) {
+				System.out.println("\r" + i + " / " + filenames.size());
+				String f = filenames.get(i);
+				try {
+					run(cmd, dir, f);
+				} catch (JSONException e) {
+					System.err.println("Problem parsing file into JSON (" + f + ")");
+				} catch (IOException e) {
+					System.err.println("Problem reading file (" + f + ")");
+				} catch (Exception e) {
+					System.err.println("Problem reading file (" + f + ")");
+				}
+			}
+		} else {
+			// Continue processing remaining arguments.
+			args = cmd.getArgs();
+			//
+			for (String st : args) {
+				run(cmd, Path.of("."), st);
+			}
 		}
 	}
 
-	public static void run(CommandLine cmd, String filename) throws IOException, JSONException {
-		Main m = new Main(filename);
-		if(cmd.hasOption("prettify")) {
+	public static void run(CommandLine cmd, Path dir, String filename) throws IOException, JSONException {
+		// Default is to write output to console
+		FileOutputStream fout = null;
+		PrintStream out = System.out;
+
+		if (cmd.hasOption("out")) {
+			Path outdir = Path.of(cmd.getOptionValue("out"));
+			Path outfile = outdir.resolve(filename);
+			// Make enclosing directories as necessary
+			outfile.toFile().getParentFile().mkdirs();
+			// Create relevant output streams.
+			fout = new FileOutputStream(outfile.toFile());
+			out = new PrintStream(fout);
+		}
+		Main m = new Main(dir.resolve(filename), out);
+		if (cmd.hasOption("prettify")) {
 			m = m.setPrettify(true);
 		}
-		if(cmd.hasOption("fork")) {
+		if (cmd.hasOption("fork")) {
 			String fork = cmd.getOptionValue("fork");
-			m.setFilter((f,i) -> f.equals(fork));
+			m.setFilter((f, i) -> f.equals(fork));
 		}
+
 		m.run();
+
+		if (cmd.hasOption("out")) {
+			out.flush();
+			out.close();
+			fout.flush();
+			fout.close();
+		}
 	}
 }
