@@ -63,7 +63,7 @@ public class Main {
 		if(prettify) {
 			out.print(json.toString(2));
 		} else {
-			out.print(json.toString());
+			out.print(json.toString()); // crashes here.
 		}
 	}
 

@@ -63,9 +63,11 @@ application {
 // A default task for convert reference tests into the trace format
 // required for testing the Dafny evm.
 task gen(type: JavaExec) {
-  classpath = sourceSets.main.runtimeClasspath
-  mainClass = 'evmtools.Main'
-  // arguments to pass to the application
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'evmtools.Main'
+    // arguments to pass to the application
+    args '-fork'
+    args 'Berlin'
     args '-dir'
     args 'fixtures'
     args '-out'
