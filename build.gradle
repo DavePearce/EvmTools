@@ -32,7 +32,7 @@ repositories {
 }
 
 group = 'org.whiley'
-version = '0.3.2'
+version = '0.3.3'
 
 java {
     withJavadocJar()
@@ -58,6 +58,18 @@ dependencies {
 application {
     mainClass = 'evmtools.Main'
     applicationName = 'evmtools'
+}
+
+// A default task for convert reference tests into the trace format
+// required for testing the Dafny evm.
+task gen(type: JavaExec) {
+  classpath = sourceSets.main.runtimeClasspath
+  mainClass = 'evmtools.Main'
+  // arguments to pass to the application
+    args '-dir'
+    args 'fixtures'
+    args '-out'
+    args 'output'    
 }
 
 // ======================================================================

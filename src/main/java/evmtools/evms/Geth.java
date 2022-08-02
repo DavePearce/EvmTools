@@ -101,7 +101,7 @@ public class Geth {
 				return new Trace(elements);
 			} else {
 				// Geth failed for some reason, so dump the input to help debugging.
-				System.err.println(pre.toJSON().toString(2));
+				//System.out.println(pre.toJSON().toString(2));
 				return null;
 			}
 		} catch (IOException e) {
@@ -136,8 +136,10 @@ public class Geth {
 			if (success && child.exitValue() == 0) {
 				// NOTE: should we do anything with syserr here?
 				return sysout.toString();
+			} else if (success) {
+				// System.err.println(syserr);
 			} else {
-				System.err.println(syserr);
+				throw new RuntimeException("timeout");
 			}
 		} finally {
 			// make sure child process is destroyed.

@@ -13,9 +13,7 @@
  */
 package evmtools;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -34,15 +32,16 @@ import evmtools.core.TraceTest;
 import evmtools.core.Transaction;
 import evmtools.core.WorldState;
 import evmtools.evms.Geth;
+import evmtools.util.OutFile;
 
 public class Main {
 	private final Path inFile;
-	private final PrintStream out;
+	private final OutFile out;
 	private final int timeout = 10; // in seconds;
 	private boolean prettify = false;
 	private BiPredicate<String,StateTest.Instance> filter = (f,i) -> true;
 
-	public Main(Path infile, PrintStream out) {
+	public Main(Path infile, OutFile out) {
 		this.out = out;
 		this.inFile = infile;
 	}
@@ -66,7 +65,6 @@ public class Main {
 		} else {
 			out.print(json.toString());
 		}
-		out.flush();
 	}
 
 	public JSONObject convertState2TraceTest(JSONObject stfile) throws JSONException {
@@ -99,6 +97,12 @@ public class Main {
 	// =====================================================================================
 	// Command-Line Interface
 	// =====================================================================================
+
+	private static String RED = "\u001b[31m";
+	private static String GREEN = "\u001b[32m";
+	private static String WHITE = "\u001b[37m";
+	private static String YELLOW = "\u001b[33m";
+	private static String RESET = "\u001b[0m";
 
 	private static final Option[] OPTIONS = new Option[] {
 			// What options do we need?
@@ -141,16 +145,14 @@ public class Main {
 			});
 			//
 			for (int i = 0; i != filenames.size(); ++i) {
-				System.out.println("\r" + i + " / " + filenames.size());
 				String f = filenames.get(i);
+				System.out.print(YELLOW + "\r(" + i + "/" + filenames.size() + ") ");
+				System.out.print(RESET + f + " ... ");
 				try {
 					run(cmd, dir, f);
-				} catch (JSONException e) {
-					System.err.println("Problem parsing file into JSON (" + f + ")");
-				} catch (IOException e) {
-					System.err.println("Problem reading file (" + f + ")");
+					System.out.println();
 				} catch (Exception e) {
-					System.err.println("Problem reading file (" + f + ")");
+					System.out.println(RED + "[" + e.getMessage() + "]");
 				}
 			}
 		} else {
@@ -164,19 +166,8 @@ public class Main {
 	}
 
 	public static void run(CommandLine cmd, Path dir, String filename) throws IOException, JSONException {
-		// Default is to write output to console
-		FileOutputStream fout = null;
-		PrintStream out = System.out;
+		OutFile out = determineOutFile(cmd, filename);
 
-		if (cmd.hasOption("out")) {
-			Path outdir = Path.of(cmd.getOptionValue("out"));
-			Path outfile = outdir.resolve(filename);
-			// Make enclosing directories as necessary
-			outfile.toFile().getParentFile().mkdirs();
-			// Create relevant output streams.
-			fout = new FileOutputStream(outfile.toFile());
-			out = new PrintStream(fout);
-		}
 		Main m = new Main(dir.resolve(filename), out);
 		if (cmd.hasOption("prettify")) {
 			m = m.setPrettify(true);
@@ -185,14 +176,21 @@ public class Main {
 			String fork = cmd.getOptionValue("fork");
 			m.setFilter((f, i) -> f.equals(fork));
 		}
-
 		m.run();
+		out.close();
+	}
 
+	public static OutFile determineOutFile(CommandLine cmd, String filename) {
 		if (cmd.hasOption("out")) {
-			out.flush();
-			out.close();
-			fout.flush();
-			fout.close();
+			Path outdir = Path.of(cmd.getOptionValue("out"));
+			Path outfile = outdir.resolve(filename);
+			// Make enclosing directories as necessary
+			outfile.toFile().getParentFile().mkdirs();
+			// Create relevant output streams.
+			return new OutFile.LazyOutFile(outfile.toFile());
+		} else {
+			// Default is to write output to console
+			return new OutFile.PrintOutFile(System.out);
 		}
 	}
 }

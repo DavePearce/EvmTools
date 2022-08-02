@@ -65,7 +65,7 @@ public class Account {
 		json.put("nonce", Hex.toHexString(nonce));
 		JSONObject st = new JSONObject();
 		for (Map.Entry<BigInteger, BigInteger> e : storage.entrySet()) {
-			st.put(Hex.toHexString(e.getKey()), Hex.toHexString(e.getValue()));
+			st.put(Hex.toHexString(e.getKey(),32), Hex.toHexString(e.getValue(),32));
 		}
 		json.put("storage", st);
 		json.put("code", Hex.toHexString(code));
