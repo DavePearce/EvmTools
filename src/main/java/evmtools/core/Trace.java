@@ -133,7 +133,7 @@ public class Trace {
 				int pc = json.getInt("pc");
 				int op = json.getInt("op");
 				// Memory is not usually reported until it is actually assigned something.
-				byte[] memory = Hex.toBytes(json.optString("memory", "0x"));
+				byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
 				BigInteger[] stack = parseStackArray(json.getJSONArray("stack"));
 				Map<BigInteger, BigInteger> storage;
 				if (json.has("storage")) {
@@ -188,7 +188,7 @@ public class Trace {
 		public String toString() {
 			String s = Hex.toArrayString(stack);
 			String st = storage.toString();
-			String m = Hex.toHexString(memory);
+			String m = Hex.toAbbreviatedHexString(memory);
 			String os = Bytecodes.toString(op);
 			if(memory.length > 0 && storage.size() > 0) {
 				return String.format("{%d:%s, stack=%s, memory=%s, storage=%s}\n", pc, os, s, m, st);
@@ -209,7 +209,7 @@ public class Trace {
 			json.put("stack", toStackArray(stack));
 			if(memory.length != 0) {
 				// Only include if something to show.
-				json.put("memory", Hex.toHexString(memory));
+				json.put("memory", Hex.toAbbreviatedHexString(memory));
 			}
 			if(storage.size() != 0) {
 				// Only include if something to show.

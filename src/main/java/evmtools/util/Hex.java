@@ -58,6 +58,40 @@ public class Hex {
 		}
 	}
 
+	public static byte[] toBytesFromAbbreviated(String s) {
+		if (s.length() % 2 != 0) {
+			throw new IllegalArgumentException("invalid hex string (" + s + ")");
+		} else {
+			// Skip "0x" if string starts with it.
+			if(s.startsWith("0x")) {
+				s = s.substring(2);
+			}
+			// Parse the string.
+			final int n = s.length();
+			// Optimise for case where no abbreviations.
+			byte[] data = new byte[n >> 1];
+			int index = 0;
+			for (int i = 0; i < n; ) {
+				char ith = s.charAt(i++);
+				if(ith == '~') {
+					// Abbreviated block
+					index = index - 1;
+					int j = s.indexOf('~', i);
+					int len = Integer.parseInt(s.substring(i,j),16);
+					System.out.println("MATCHED " + i + " .. " + j + " ... " + len);
+					data = expand(data,index,data[index],len);
+					index += len;
+					i = j + 3;
+				} else {
+					char ithp1 = s.charAt(i++);
+					int val = (Character.digit(ith, 16) << 4) | Character.digit(ithp1, 16);
+					data[index++] = (byte) val;
+				}
+			}
+			return data;
+		}
+	}
+
 	/**
 	 * Convert a sequence of bytes into a hexadecimal string.
 	 *
@@ -70,6 +104,40 @@ public class Hex {
 		for(int i=0;i!=bytes.length;++i) {
 			int b = bytes[i] & 0xff;
 			sb.append(String.format("%02x",b));
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Convert a sequence of bytes into a hexadecimal string, allowing abbreviations
+	 * of large sequences of the same value.
+	 *
+	 * @param bytes
+	 * @return
+	 */
+	public static String toAbbreviatedHexString(byte... bytes) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("0x");
+		for (int i = 0; i < bytes.length; ++i) {
+			byte ith = bytes[i];
+			// Look for abbreviation.
+			int j = i + 1;
+			while (j < bytes.length && bytes[j] == ith) {
+				j = j + 1;
+			}
+			int diff = j - (i+1);
+			int b = bytes[i] & 0xff;
+			if (diff > 32) {
+				//sb.append(String.format("%02x~(%d)~%02x", b, diff, b));
+				String d = String.format("%x",diff);
+				if(d.length() % 2 != 0) {
+					d = "0" + d;
+				}
+				sb.append(String.format("%02x~%s~%02x", b, d, b));
+				i = j-1;
+			} else {
+				sb.append(String.format("%02x", b));
+			}
 		}
 		return sb.toString();
 	}
@@ -116,5 +184,32 @@ public class Hex {
 			r[i] = toHexString(items[i]);
 		}
 		return Arrays.toString(r);
+	}
+
+	/**
+	 * Insert <code>len</code> copies of <code>b</code> at position <code>pos</code>
+	 * in a given byte array.
+	 *
+	 * @param bytes
+	 * @param pos
+	 * @param b
+	 * @param len
+	 * @return
+	 */
+	private static byte[] expand(byte[] bytes, int pos, byte b, int len) {
+		bytes = Arrays.copyOf(bytes, bytes.length + len);
+		if(b != 0) {
+			for(int i=0;i<len;++i) {
+				bytes[pos+i] = b;
+			}
+		}
+		return bytes;
+	}
+
+	public static void main(String[] args) {
+		byte[] bytes = Hex.toBytesFromAbbreviated("0x00~02~00");
+		if(!Arrays.equals(bytes, new byte[] {0,0,0,0})) {
+			throw new RuntimeException(Arrays.toString(bytes));
+		}
 	}
 }
