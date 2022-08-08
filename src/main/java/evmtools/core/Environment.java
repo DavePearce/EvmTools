@@ -29,6 +29,7 @@ public class Environment {
 	public final BigInteger currentGasLimit;
 	public final BigInteger currentNumber;
 	public final BigInteger currentTimestamp;
+	public final BigInteger currentBaseFee;
 	/**
 	 * Hash of the previous block.
 	 */
@@ -39,13 +40,14 @@ public class Environment {
 	public final Map<BigInteger,BigInteger> blockHashes;
 
 	public Environment(BigInteger currentCoinbase, BigInteger currentDifficulty, BigInteger currentGasLimit,
-			BigInteger currentNumber, BigInteger currentTimestamp, BigInteger previousHash,
+			BigInteger currentNumber, BigInteger currentTimestamp, BigInteger currentBaseFee, BigInteger previousHash,
 			Map<BigInteger, BigInteger> blockHashes) {
 		this.currentCoinbase = currentCoinbase;
 		this.currentDifficulty = currentDifficulty;
 		this.currentGasLimit = currentGasLimit;
 		this.currentNumber = currentNumber;
 		this.currentTimestamp = currentTimestamp;
+		this.currentBaseFee = currentBaseFee;
 		this.previousHash = previousHash;
 		this.blockHashes = new HashMap<>(blockHashes);
 	}
@@ -53,10 +55,11 @@ public class Environment {
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("currentCoinbase", Hex.toHexString(currentCoinbase));
-		json.put("currentDifficult", Hex.toHexString(currentDifficulty));
+		json.put("currentDifficulty", Hex.toHexString(currentDifficulty));
 		json.put("currentGasLimit", Hex.toHexString(currentGasLimit));
 		json.put("currentNumber", Hex.toHexString(currentNumber));
 		json.put("currentTimestamp", Hex.toHexString(currentTimestamp));
+		json.put("currentBaseFee", Hex.toHexString(currentBaseFee));
 		json.put("previousHash", Hex.toHexString(previousHash));
 		if(!blockHashes.isEmpty()) {
 			JSONObject st = new JSONObject();
@@ -74,6 +77,7 @@ public class Environment {
 		BigInteger gasLimit = Hex.toBigInt(json.getString("currentGasLimit"));
 		BigInteger number = Hex.toBigInt(json.getString("currentNumber"));
 		BigInteger timeStamp = Hex.toBigInt(json.getString("currentTimestamp"));
+		BigInteger baseFee = Hex.toBigInt(json.getString("currentBaseFee"));
 		BigInteger prevHash = Hex.toBigInt(json.getString("previousHash"));
 		// Construct blockHashes
 		HashMap<BigInteger,BigInteger> hashes = new HashMap<>();
@@ -90,6 +94,6 @@ public class Environment {
 			}
 		}
 		// Done
-		return new Environment(coinBase,difficulty,gasLimit,number,timeStamp,prevHash,hashes);
+		return new Environment(coinBase, difficulty, gasLimit, number, timeStamp, baseFee, prevHash, hashes);
 	}
 }

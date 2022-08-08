@@ -74,17 +74,13 @@ public class Transaction {
 	 * Solidity ABI).
 	 */
 	public final byte[] data;
-	/**
-	 * Indices used to generate this instance.
-	 */
-	public final int[] indices;
 
 	/**
 	 * The expected outcome from executing this transaction (e.g. normal execution,
 	 * revert, etc).
 	 */
 	public Transaction(BigInteger sender, BigInteger to, BigInteger gasLimit, BigInteger gasPrice, BigInteger nonce,
-			BigInteger value, byte[] data, int... indices) {
+			BigInteger value, byte[] data) {
 		this.sender = sender;
 		this.to = to;
 		this.gasLimit = gasLimit;
@@ -92,7 +88,6 @@ public class Transaction {
 		this.nonce = nonce;
 		this.value = value;
 		this.data = data;
-		this.indices = indices;
 	}
 
 	/**
@@ -142,14 +137,11 @@ public class Transaction {
 		} else {
 			json.put("to",Hex.toHexString(to));
 		}
-		json.put("gas",Hex.toHexString(gasLimit));
+		json.put("gasLimit",Hex.toHexString(gasLimit));
 		json.put("gasPrice",Hex.toHexString(gasPrice));
 		json.put("nonce",Hex.toHexString(nonce));
 		json.put("value",Hex.toHexString(value));
 		json.put("input",Hex.toHexString(data));
-		json.put("v",Hex.toHexString(BigInteger.valueOf(indices[0])));
-		json.put("r",Hex.toHexString(BigInteger.valueOf(indices[1])));
-		json.put("s",Hex.toHexString(BigInteger.valueOf(indices[2])));
 		return json;
 	}
 
@@ -157,15 +149,12 @@ public class Transaction {
 		BigInteger sender = Hex.toBigInt(json.getString("sender"));
 		String _to = json.getString("to");
 		BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
-		BigInteger gasLimit = Hex.toBigInt(json.getString("gas"));
+		BigInteger gasLimit = Hex.toBigInt(json.getString("gasLimit"));
 		BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
 		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 		BigInteger value = Hex.toBigInt(json.getString("value"));
 		byte[] data = Hex.toBytes(json.getString("input"));
-		int v = Hex.toBigInt(json.getString("v")).intValueExact();
-		int r = Hex.toBigInt(json.getString("r")).intValueExact();
-		int s = Hex.toBigInt(json.getString("s")).intValueExact();
-		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data, v, r, s);
+		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data);
 	}
 
 	/**
@@ -208,7 +197,7 @@ public class Transaction {
 			int d = indices.get("data");
 			int v = indices.get("value");
 			return new Transaction(template.sender, template.to, gasLimits[g], template.gasPrice, template.nonce,
-					values[v], datas[d], v, d, g);
+					values[v], datas[d]);
 		}
 
 		/**

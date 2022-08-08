@@ -94,13 +94,13 @@ public class GeneralStateTests {
 	 * @param i
 	 */
 	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException, IOException {
-		GethT8n geth = new GethT8n().setTimeout(TIMEOUT * 1000);
-		Trace trace = geth.execute(FORK, env, state, tx);
+		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
+		Trace trace = geth.execute(env, state, tx);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
-		JSONArray t = trace.toJSON();
-		System.out.println("GOT: " + t);
+		//JSONArray t = trace.toJSON();
+		//System.out.println("GOT: " + t);
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 
