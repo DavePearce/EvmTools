@@ -74,11 +74,11 @@ public class Transaction {
 	 * Solidity ABI).
 	 */
 	public final byte[] data;
+
 	/**
 	 * The expected outcome from executing this transaction (e.g. normal execution,
 	 * revert, etc).
 	 */
-
 	public Transaction(BigInteger sender, BigInteger to, BigInteger gasLimit, BigInteger gasPrice, BigInteger nonce,
 			BigInteger value, byte[] data) {
 		this.sender = sender;
@@ -141,7 +141,7 @@ public class Transaction {
 		json.put("gasPrice",Hex.toHexString(gasPrice));
 		json.put("nonce",Hex.toHexString(nonce));
 		json.put("value",Hex.toHexString(value));
-		json.put("data",Hex.toHexString(data));
+		json.put("input",Hex.toHexString(data));
 		return json;
 	}
 
@@ -153,7 +153,7 @@ public class Transaction {
 		BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
 		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 		BigInteger value = Hex.toBigInt(json.getString("value"));
-		byte[] data = Hex.toBytes(json.getString("data"));
+		byte[] data = Hex.toBytes(json.getString("input"));
 		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data);
 	}
 

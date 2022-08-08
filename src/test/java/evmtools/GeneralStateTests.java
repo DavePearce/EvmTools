@@ -34,6 +34,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import evmtools.core.*;
 import evmtools.evms.Geth;
+import evmtools.evms.GethT8n;
 
 /**
  * A test runner for executing the <code>GeneralStateTests</code> provided as
@@ -92,13 +93,14 @@ public class GeneralStateTests {
 	 *
 	 * @param i
 	 */
-	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException {
+	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
 		Trace trace = geth.execute(env, state, tx);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
-		JSONArray t = trace.toJSON();
+		//JSONArray t = trace.toJSON();
+		//System.out.println("GOT: " + t);
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 
@@ -131,6 +133,7 @@ public class GeneralStateTests {
 					// Add them all
 					testcases.addAll(tests);
 				} catch(JSONException e) {
+					e.printStackTrace();
 					System.out.println("Problem parsing file into JSON (" + f + ")");
 				} catch(IOException e) {
 					System.out.println("Problem reading file (" + f + ")");

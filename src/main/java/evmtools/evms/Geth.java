@@ -82,6 +82,8 @@ public class Geth {
 			command.add("--nostorage=false");
 			command.add("--prestate");
 			command.add(preStateFile);
+			command.add("--receiver");
+			command.add(Hex.toHexString(tx.to));
 			command.add("--code");
 			command.add(Hex.toHexString(tx.getCode(pre)));
 			command.add("run");
@@ -131,11 +133,16 @@ public class Geth {
 			StreamGrabber sysout = new StreamGrabber(child.getInputStream());
 			// second, read the result whilst checking for a timeout
 			boolean success = child.waitFor(timeout, TimeUnit.MILLISECONDS);
+			String out = sysout.get();
+			String err = syserr.get();
+			if(!err.equals("")) {
+				System.err.println(syserr.get());
+			}
 			if (success && child.exitValue() == 0) {
 				// NOTE: should we do anything with syserr here?
-				return sysout.get();
+				return out;
 			} else if (success) {
-				System.err.println(syserr);
+				System.err.println(err);
 			} else {
 				throw new RuntimeException("timeout");
 			}
@@ -152,7 +159,7 @@ public class Geth {
 		JSONObject json = tx.toJSON();
 		//
 		json.put("alloc",pre.toJSON());
-		json.put("difficulty", Hex.toHexString(env.difficulty));
+		json.put("difficulty", Hex.toHexString(env.currentDifficulty));
 		//json.put("pre",pre.toJSON());
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile("geth_prestate", ".json", bytes);
