@@ -152,7 +152,7 @@ public class Geth {
 		JSONObject json = tx.toJSON();
 		//
 		json.put("alloc",pre.toJSON());
-		json.put("difficulty", Hex.toHexString(env.difficulty));
+		json.put("difficulty", Hex.toHexString(env.currentDifficulty));
 		//json.put("pre",pre.toJSON());
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile("geth_prestate", ".json", bytes);

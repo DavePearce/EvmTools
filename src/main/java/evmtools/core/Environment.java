@@ -14,21 +14,82 @@
 package evmtools.core;
 
 import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import evmtools.util.Hex;
 
 public class Environment {
-	public final BigInteger difficulty;
+	public final BigInteger currentCoinbase;
+	public final BigInteger currentDifficulty;
+	public final BigInteger currentGasLimit;
+	public final BigInteger currentNumber;
+	public final BigInteger currentTimestamp;
+	/**
+	 * Hash of the previous block.
+	 */
+	public final BigInteger previousHash;
+	/**
+	 * A map of historical block numbers and their hashes.
+	 */
+	public final Map<BigInteger,BigInteger> blockHashes;
 
-	public Environment(BigInteger difficulty) {
-		this.difficulty = difficulty;
+	public Environment(BigInteger currentCoinbase, BigInteger currentDifficulty, BigInteger currentGasLimit,
+			BigInteger currentNumber, BigInteger currentTimestamp, BigInteger previousHash,
+			Map<BigInteger, BigInteger> blockHashes) {
+		this.currentCoinbase = currentCoinbase;
+		this.currentDifficulty = currentDifficulty;
+		this.currentGasLimit = currentGasLimit;
+		this.currentNumber = currentNumber;
+		this.currentTimestamp = currentTimestamp;
+		this.previousHash = previousHash;
+		this.blockHashes = new HashMap<>(blockHashes);
+	}
+
+	public JSONObject toJSON() throws JSONException {
+		JSONObject json = new JSONObject();
+		json.put("currentCoinbase", Hex.toHexString(currentCoinbase));
+		json.put("currentDifficult", Hex.toHexString(currentDifficulty));
+		json.put("currentGasLimit", Hex.toHexString(currentGasLimit));
+		json.put("currentNumber", Hex.toHexString(currentNumber));
+		json.put("currentTimestamp", Hex.toHexString(currentTimestamp));
+		json.put("previousHash", Hex.toHexString(previousHash));
+		if(!blockHashes.isEmpty()) {
+			JSONObject st = new JSONObject();
+			for (Map.Entry<BigInteger, BigInteger> e : blockHashes.entrySet()) {
+				st.put(e.getKey().toString(), Hex.toHexString(e.getValue(),32));
+			}
+			json.put("blockHashes", st);
+		}
+		return json;
 	}
 
 	public static Environment fromJSON(JSONObject json) throws JSONException {
+		BigInteger coinBase = Hex.toBigInt(json.getString("currentCoinbase"));
 		BigInteger difficulty = Hex.toBigInt(json.getString("currentDifficulty"));
-		return new Environment(difficulty);
+		BigInteger gasLimit = Hex.toBigInt(json.getString("currentGasLimit"));
+		BigInteger number = Hex.toBigInt(json.getString("currentNumber"));
+		BigInteger timeStamp = Hex.toBigInt(json.getString("currentTimestamp"));
+		BigInteger prevHash = Hex.toBigInt(json.getString("previousHash"));
+		// Construct blockHashes
+		HashMap<BigInteger,BigInteger> hashes = new HashMap<>();
+		if(json.has("blockHashes")) {
+			JSONObject map = json.getJSONObject("blockHashes");
+			JSONArray names = map.names();
+			if (names != null) {
+				for (int i = 0; i != names.length(); ++i) {
+					String ith = names.getString(i);
+					BigInteger addr = Hex.toBigInt(ith);
+					BigInteger value = Hex.toBigInt(map.getString(ith));
+					hashes.put(addr, value);
+				}
+			}
+		}
+		// Done
+		return new Environment(coinBase,difficulty,gasLimit,number,timeStamp,prevHash,hashes);
 	}
 }
