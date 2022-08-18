@@ -1,8 +1,10 @@
 package evmtools.core;
 
 import java.math.BigInteger;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,6 +43,17 @@ public class WorldState {
 		return state.hashCode();
 	}
 
+	public Set<BigInteger> keySet() {
+		return state.keySet();
+	}
+
+	public Collection<Account> values() {
+		return state.values();
+	}
+
+	public Set<Map.Entry<BigInteger, Account>> entrySet() {
+		return state.entrySet();
+	}
 
 	public JSONObject toJSON() throws JSONException {
 		// Convert world state
