@@ -60,7 +60,7 @@ public class TraceTest {
 	@Override
 	public String toString() {
 		try {
-			return toJSON().toString();
+			return toJSON(true).toString();
 		} catch (JSONException e) {
 			return null;
 		}
@@ -81,9 +81,11 @@ public class TraceTest {
 	/**
 	 * Convert this test into a JSON file.
 	 *
+	 * @param Enable the use of abbreviated hex strings (recommended).
+	 *
 	 * @return
 	 */
-	public JSONObject toJSON() throws JSONException {
+	public JSONObject toJSON(boolean abbreviate) throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("pre", state.toJSON());
 		JSONObject tests = new JSONObject();
@@ -92,7 +94,7 @@ public class TraceTest {
 			List<Instance> instances = e.getValue();
 			JSONArray is = new JSONArray();
 			for (int i = 0; i != instances.size(); ++i) {
-				is.put(i, instances.get(i).toJSON());
+				is.put(i, instances.get(i).toJSON(abbreviate));
 			}
 			tests.put(fork, is);
 		}
@@ -161,10 +163,17 @@ public class TraceTest {
 			return String.format("%s_%x",parent.name,hash);
 		}
 
-		public JSONObject toJSON() throws JSONException {
+		/**
+		 * Convert this trace test into JSON.
+		 *
+		 * @param Enable the use of abbreviated hex strings (recommended).
+		 *
+		 * @return
+		 */
+		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("transaction", transaction.toJSON());
-			json.put("trace", trace.toJSON());
+			json.put("trace", trace.toJSON(abbreviate));
 			json.put("expect", expectation.toString());
 			return json;
 		}

@@ -39,6 +39,7 @@ public class Main {
 	private final OutFile out;
 	private final int timeout = 10; // in seconds;
 	private boolean prettify = false;
+	private boolean abbreviate = true;
 	private BiPredicate<String,StateTest.Instance> filter = (f,i) -> true;
 
 	public Main(Path infile, OutFile out) {
@@ -46,13 +47,18 @@ public class Main {
 		this.inFile = infile;
 	}
 
-	private Main setPrettify(boolean flag) {
+	private Main prettify(boolean flag) {
 		this.prettify = flag;
 		return this;
 	}
 
-	private Main setFilter(BiPredicate<String,StateTest.Instance> filter) {
+	private Main filter(BiPredicate<String,StateTest.Instance> filter) {
 		this.filter = this.filter.and(filter);
+		return this;
+	}
+
+	private Main abbreviate(boolean flag) {
+		this.abbreviate = flag;
 		return this;
 	}
 
@@ -89,7 +95,7 @@ public class Main {
 				}
 			}
 			TraceTest tt = new TraceTest(st.getName(), state, forks);
-			json.put(st.getName(),tt.toJSON());
+			json.put(st.getName(),tt.toJSON(abbreviate));
 		}
 		return json;
 	}
@@ -110,6 +116,7 @@ public class Main {
 			new Option("out", true, "Directory to write generate files"),
 			new Option("fork", true, "Restrict to a particular fork (e.g. 'Berlin')."),
 			new Option("prettify", false, "Output \"pretty\" json"),
+			new Option("abbreviate", true, "Enable/Disable hex string abbreviation (default is enabled)"),
 	};
 
 	public static CommandLine parseCommandLine(String[] args) {
@@ -170,11 +177,14 @@ public class Main {
 
 		Main m = new Main(dir.resolve(filename), out);
 		if (cmd.hasOption("prettify")) {
-			m = m.setPrettify(true);
+			m = m.prettify(true);
+		}
+		if (cmd.hasOption("abbreviate")) {
+			m = m.abbreviate(Boolean.parseBoolean(cmd.getOptionValue("abbreviate")));
 		}
 		if (cmd.hasOption("fork")) {
 			String fork = cmd.getOptionValue("fork");
-			m.setFilter((f, i) -> f.equals(fork));
+			m.filter((f, i) -> f.equals(fork));
 		}
 		m.run();
 		out.close();

@@ -69,12 +69,14 @@ public class Trace {
 	/**
 	 * Convert this trace into JSON.
 	 *
+	 * @param Enable the use of abbreviated hex strings (recommended).
+	 *
 	 * @return
 	 */
-	public JSONArray toJSON() throws JSONException {
+	public JSONArray toJSON(boolean abbreviate) throws JSONException {
 		JSONArray arr = new JSONArray();
 		for(int i=0;i!=elements.size();++i) {
-			arr.put(i, elements.get(i).toJSON());
+			arr.put(i, elements.get(i).toJSON(abbreviate));
 		}
 		return arr;
 	}
@@ -96,9 +98,11 @@ public class Trace {
 	public static interface Element {
 		/**
 		 * Convert a trace element into JSON.
+		 *
+		 * @param Enable the use of abbreviated hex strings.
 		 * @return
 		 */
-		public JSONObject toJSON() throws JSONException;
+		public JSONObject toJSON(boolean abbreviate) throws JSONException;
 
 		/**
 		 * Convert a <code>JSON</code> object into a <code>Trace</code> object. An
@@ -202,14 +206,15 @@ public class Trace {
 		}
 
 		@Override
-		public JSONObject toJSON() throws JSONException {
+		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("pc", pc);
 			json.put("op", op);
 			json.put("stack", toStackArray(stack));
 			if(memory.length != 0) {
 				// Only include if something to show.
-				json.put("memory", Hex.toAbbreviatedHexString(memory));
+				String hex = abbreviate ? Hex.toAbbreviatedHexString(memory) : Hex.toHexString(memory);
+				json.put("memory", hex);
 			}
 			if(storage.size() != 0) {
 				// Only include if something to show.
@@ -255,7 +260,7 @@ public class Trace {
 		}
 
 		@Override
-		public JSONObject toJSON() throws JSONException {
+		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("output",Hex.toHexString(data));
 			return json;
@@ -292,7 +297,7 @@ public class Trace {
 		}
 
 		@Override
-		public JSONObject toJSON() throws JSONException {
+		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("error","execution reverted");
 			json.put("output",Hex.toHexString(data));
@@ -325,7 +330,7 @@ public class Trace {
 		}
 
 		@Override
-		public JSONObject toJSON() throws JSONException {
+		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("error","");
 			json.put("output","");
