@@ -127,7 +127,7 @@ public class Trace {
 					return new Trace.Reverts(data);
 				} else {
 					// FIXME: confirm error code.
-					return new Trace.Exception();
+					return new Trace.Exception(Exception.Error.UNKNOWN);
 				}
 			} else if (json.has("output")) {
 				// Normal return (e.g. STOP or RETURNS)
@@ -246,7 +246,7 @@ public class Trace {
 		@Override
 		public String toString() {
 			String o = Hex.toHexString(data);
-			return String.format("return(%s)",o);
+			return String.format("return(%s)\n",o);
 		}
 
 		@Override
@@ -283,7 +283,7 @@ public class Trace {
 		@Override
 		public String toString() {
 			String o = Hex.toHexString(data);
-			return String.format("revert(%s)",o);
+			return String.format("revert(%s)\n",o);
 		}
 
 		@Override
@@ -314,9 +314,25 @@ public class Trace {
 	 */
 	public static class Exception implements Element {
 
+		public enum Error {
+			UNKNOWN,
+			INSUFFICIENT_GAS,
+			INVALID_OPCODE,
+			STACK_UNDERFLOW,
+			STACK_OVERFLOW,
+			MEMORY_OVERFLOW,
+			INVALID_JUMPDEST
+		}
+
+		private final Error code;
+
+		public Exception(Error code) {
+			this.code = code;
+		}
+
 		@Override
 		public String toString() {
-			return "error()";
+			return "exception(" + code.toString() + ")\n";
 		}
 
 		@Override
