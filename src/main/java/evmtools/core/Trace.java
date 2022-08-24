@@ -321,7 +321,8 @@ public class Trace {
 			STACK_UNDERFLOW,
 			STACK_OVERFLOW,
 			MEMORY_OVERFLOW,
-			INVALID_JUMPDEST
+			INVALID_JUMPDEST,
+			CALLDEPTH_EXCEEDED
 		}
 
 		private final Error code;
