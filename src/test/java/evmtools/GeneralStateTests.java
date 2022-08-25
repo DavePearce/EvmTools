@@ -100,7 +100,7 @@ public class GeneralStateTests {
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
 		//JSONArray t = trace.toJSON();
-		//System.out.println("GOT: " + t);
+//		System.out.println("GOT: " + trace.toString());
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 

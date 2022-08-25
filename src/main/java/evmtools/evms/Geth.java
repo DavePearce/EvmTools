@@ -82,6 +82,14 @@ public class Geth {
 			command.add("--nostorage=false");
 			command.add("--prestate");
 			command.add(preStateFile);
+			command.add("--value");
+			command.add(Hex.toHexString(tx.value));
+			command.add("--gas");
+			command.add(Hex.toHexString(tx.gasLimit));
+			command.add("--price");
+			command.add(Hex.toHexString(tx.gasPrice));
+			command.add("--sender");
+			command.add(Hex.toHexString(tx.sender));
 			command.add("--receiver");
 			command.add(Hex.toHexString(tx.to));
 			command.add("--code");
