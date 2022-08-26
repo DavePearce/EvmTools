@@ -13,29 +13,27 @@
  */
 package evmtools.evms;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigInteger;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.LinkOption;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtools.core.Account;
 import evmtools.core.Environment;
-import evmtools.core.StateTest;
 import evmtools.core.Trace;
 import evmtools.core.Transaction;
 import evmtools.core.WorldState;
+import evmtools.util.AbstractExecutable;
 import evmtools.util.Hex;
-import evmtools.util.StreamGrabber;
 
 /**
  * An interface to Geth's command-line <code>evm</code> tool. This allows us to
@@ -46,16 +44,11 @@ import evmtools.util.StreamGrabber;
  * @author David J. Pearce
  *
  */
-public class Geth {
+public class Geth extends AbstractExecutable {
 	/**
 	 * Command to use to execture Geth.
 	 */
 	private final String cmd = "evm";
-
-	/**
-	 * Timeout (in millisecond) to wait for the process to complete.
-	 */
-	private int timeout = 10000;
 
 	public Geth setTimeout(int timeout) {
 		this.timeout = timeout;
@@ -68,7 +61,7 @@ public class Geth {
 	 * @param tx
 	 * @return
 	 */
-	public Trace execute(Environment env, WorldState pre, Transaction tx) throws JSONException {
+	public Trace run(Environment env, WorldState pre, Transaction tx) throws JSONException {
 		String preStateFile = null;
 		try {
 			preStateFile = createPreStateFile(env,pre,tx);
@@ -99,16 +92,7 @@ public class Geth {
 			String out = exec(command);
 			//
 			if(out != null) {
-				// Parse into JSON. Geth produces one line per trace element.
-				ArrayList<Trace.Element> elements = new ArrayList<>();
-				Scanner scanner = new Scanner(out);
-				while (scanner.hasNextLine()) {
-					String line = scanner.nextLine();
-					JSONObject element = new JSONObject(line);
-					elements.add(Trace.Element.fromJSON(element));
-				}
-				scanner.close();
-				return new Trace(elements);
+				return parseTraceOutput(new Scanner(out));
 			} else {
 				// Geth failed for some reason, so dump the input to help debugging.
 				//System.out.println(pre.toJSON().toString(2));
@@ -126,40 +110,130 @@ public class Geth {
 		}
 	}
 
-	public String exec(List<String> command) throws IOException, InterruptedException {
-		// ===================================================
-		// Construct the process
-		// ===================================================
-		ProcessBuilder builder = new ProcessBuilder(command);
-		Process child = builder.start();
+	public Trace runt8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
+		Path tempDir = null;
+		String envFile = null;
+		String allocFile = null;
+		String txsFile = null;
 		try {
-			// NOTE: the stream grabbers are required to prevent internal buffers from
-			// getting full. Since some of the trace output for state tests is very large,
-			// this is a real issue we encounter. That is, if we just wait for the process
-			// to exit then read everything from its inputstream ... well, this won't work.
-			StreamGrabber syserr = new StreamGrabber(child.getErrorStream());
-			StreamGrabber sysout = new StreamGrabber(child.getInputStream());
-			// second, read the result whilst checking for a timeout
-			boolean success = child.waitFor(timeout, TimeUnit.MILLISECONDS);
-			String out = sysout.get();
-			String err = syserr.get();
-			if(!err.equals("")) {
-				System.err.println(syserr.get());
-			}
-			if (success && child.exitValue() == 0) {
-				// NOTE: should we do anything with syserr here?
-				return out;
-			} else if (success) {
-				System.err.println(err);
+			tempDir = createTemporaryDirectory();
+			System.out.println("GOT: " + pre.toJSON().toString());
+			envFile = createEnvFile(tempDir,env);
+			allocFile = createAllocFile(tempDir,pre);
+			txsFile = createTransactionsFile(tempDir,tx);
+			// Build up the command
+			ArrayList<String> command = new ArrayList<>();
+			command.add(cmd);
+			command.add("t8n");
+			command.add("--state.fork");
+			command.add(fork);
+			// Trace info
+			command.add("--trace");
+			//command.add("--trace.memory");
+//			command.add("--trace.nostorage");
+//			command.add("false");
+			// Input
+			command.add("--input.env");
+			command.add(envFile);
+			command.add("--input.alloc");
+			command.add(allocFile);
+			command.add("--input.txs");
+			command.add(txsFile);
+			command.add("--output.basedir");
+			command.add(tempDir.toString());
+//			command.add("--output.result");
+//			command.add("stdout");
+			command.add("--output.alloc");
+			command.add("alloc-out.json");
+			//
+			System.out.println("COMMAND: " + command);
+			String out = exec(command);
+			System.out.println("SYSOUT: " + out);
+			//
+			if(out != null) {
+				// Parse into JSON. Geth produces one line per trace element.
+				return readTraceFile(tempDir);
 			} else {
-				throw new RuntimeException("timeout");
+				// Geth failed for some reason, so dump the input to help debugging.
+				//System.out.println(pre.toJSON().toString(2));
+				return null;
 			}
+		} catch (IOException e) {
+			return null;
+		} catch (InterruptedException e) {
+			return null;
 		} finally {
-			// make sure child process is destroyed.
-			child.destroy();
+			forceDelete(tempDir);
 		}
-		// Failure
-		return null;
+	}
+
+	// ===============================================================================
+	// Parsers for trace output
+	// ===============================================================================
+
+	private static Trace readTraceFile(Path dir) throws IOException {
+		List<Trace> tr = new ArrayList<>();
+		//
+		Files.walk(dir, 10).forEach(f -> {
+			try {
+				if (f.toString().endsWith(".jsonl")) {
+					if (tr.size() > 1) {
+						throw new IllegalArgumentException("multiple trace files detected");
+					}
+					tr.add(parseTraceOutput(new Scanner(f)));
+				}
+			} catch (JSONException e) {
+				throw new RuntimeException("Unable to parse JSON trace file");
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
+		});
+		return tr.get(0);
+	}
+
+	private static Trace parseTraceOutput(Scanner scanner) throws JSONException {
+		// Parse into JSON. Geth produces one line per trace element.
+		ArrayList<Trace.Element> elements = new ArrayList<>();
+		while (scanner.hasNextLine()) {
+			String line = scanner.nextLine();
+			JSONObject element = new JSONObject(line);
+			Trace.Element ith = Trace.Element.fromJSON(element);
+			if (ith != null) {
+				elements.add(ith);
+			}
+		}
+		scanner.close();
+		return new Trace(elements);
+	}
+
+	private static String createAllocFile(Path dir, WorldState pre)
+			throws JSONException, IOException, InterruptedException {
+		JSONObject json = pre.toJSON();
+		byte[] bytes = json.toString(2).getBytes();
+		return createTemporaryFile(dir, "alloc.json", bytes);
+	}
+
+	private static String createEnvFile(Path dir, Environment env)
+			throws JSONException, IOException, InterruptedException {
+		JSONObject json = env.toJSON();
+		byte[] bytes = json.toString(2).getBytes();
+		return createTemporaryFile(dir, "env.json", bytes);
+	}
+
+	private static String createTransactionsFile(Path dir, Transaction tx)
+			throws JSONException, IOException, InterruptedException {
+		JSONObject obj = tx.toJSON();
+		obj.put("v","");
+		obj.put("r","");
+		obj.put("s","");
+		JSONArray json = new JSONArray();
+		json.put(0,obj);
+		byte[] bytes = json.toString(2).getBytes();
+		return createTemporaryFile(dir, "txs.json", bytes);
+	}
+
+	private static Path createTemporaryDirectory() throws IOException {
+		return Files.createTempDirectory("geth");
 	}
 
 	private static String createPreStateFile(Environment env, WorldState pre, Transaction tx)
@@ -192,4 +266,42 @@ public class Geth {
         //
         return f.getAbsolutePath();
     }
+
+	/**
+     * Write a given string into a temporary file which can then be checked by boogie.
+     *
+     * @param contents
+     * @return
+     */
+    private static String createTemporaryFile(Path dir, String name, byte[] contents)
+            throws IOException, InterruptedException {
+    	File f = dir.resolve(name).toFile();
+        // Open for writing
+        FileOutputStream fout = new FileOutputStream(f);
+        // Write contents to file
+        fout.write(contents);
+        // Done creating file
+        fout.close();
+        //
+        return f.getAbsolutePath();
+    }
+
+    /**
+	 * Force a directory and all its contents to be deleted.
+	 *
+	 * @param path
+	 * @throws IOException
+	 */
+	public void forceDelete(Path path) throws IOException {
+		if (Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+			try (DirectoryStream<Path> entries = Files.newDirectoryStream(path)) {
+				for (Path entry : entries) {
+					forceDelete(entry);
+				}
+			}
+		}
+		if (path.toFile().exists()) {
+			Files.delete(path);
+		}
+	}
 }
