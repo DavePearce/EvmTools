@@ -34,7 +34,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import evmtools.core.*;
 import evmtools.evms.Geth;
-import evmtools.evms.GethT8n;
 
 /**
  * A test runner for executing the <code>GeneralStateTests</code> provided as
@@ -95,7 +94,7 @@ public class GeneralStateTests {
 	 */
 	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
-		Trace trace = geth.execute(env, state, tx);
+		Trace trace = geth.run(env, state, tx);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
