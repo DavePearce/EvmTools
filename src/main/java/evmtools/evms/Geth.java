@@ -21,6 +21,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 
@@ -197,13 +198,24 @@ public class Geth extends AbstractExecutable {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			JSONObject element = new JSONObject(line);
-			Trace.Element ith = Trace.Element.fromJSON(element);
-			if (ith != null) {
-				elements.add(ith);
+			if(!shouldIgnore(element)) {
+				elements.add(Trace.Element.fromJSON(element));
 			}
 		}
 		scanner.close();
 		return new Trace(elements);
+	}
+
+	private static boolean shouldIgnore(JSONObject element) throws JSONException {
+		// NOTE: this is basically needed to work around some issues with Geth. For
+		// example, certain errors produce rather inconsistent output. For example, an
+		// invalid jump destination ends up with two steps in the trace (of which we can
+		// ignore the latter).
+		if(element.has("pc") && element.has("error")) {
+			return element.getString("error").equals("invalid jump destination");
+		}
+		//
+		return false;
 	}
 
 	private static String createAllocFile(Path dir, WorldState pre)

@@ -136,10 +136,7 @@ public class Trace {
 				// Normal return (e.g. STOP or RETURNS)
 				byte[] data = Hex.toBytes(json.getString("output"));
 				return new Trace.Returns(data);
-			} else if (json.has("pc") && !json.has("error")){
-				// NOTE: its a quirk of the Geth output that we sometimes have spurious trace
-				// steps which include an error. At this stage, I don't know why that is and we
-				// just ignore them (and return null from this method in such case).
+			} else {
 				int pc = json.getInt("pc");
 				int op = json.getInt("op");
 				// Memory is not usually reported until it is actually assigned something.
@@ -153,8 +150,6 @@ public class Trace {
 				}
 				//
 				return new Trace.Step(pc, op, stack, memory, storage);
-			} else {
-				return null;
 			}
 		}
 	}
