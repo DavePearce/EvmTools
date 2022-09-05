@@ -118,7 +118,6 @@ public class Geth extends AbstractExecutable {
 		String txsFile = null;
 		try {
 			tempDir = createTemporaryDirectory();
-			System.out.println("GOT: " + pre.toJSON().toString());
 			envFile = createEnvFile(tempDir,env);
 			allocFile = createAllocFile(tempDir,pre);
 			txsFile = createTransactionsFile(tempDir,tx);
@@ -250,9 +249,9 @@ public class Geth extends AbstractExecutable {
 
 	private static String createPreStateFile(Environment env, WorldState pre, Transaction tx)
 			throws JSONException, IOException, InterruptedException {
-		JSONObject json = tx.toJSON();
-		//
+		JSONObject json = new JSONObject();
 		json.put("alloc",pre.toJSON());
+		json.put("env", env.toJSON());
 		json.put("coinbase", Hex.toHexString(env.currentCoinbase));
 		json.put("difficulty", Hex.toHexString(env.currentDifficulty));
 		// FIXME: block number is hardcoded because we cannot create a gensis block with
@@ -262,8 +261,7 @@ public class Geth extends AbstractExecutable {
 		json.put("timestamp", Hex.toHexString(env.currentTimestamp));
 		// FIXME: commented out because it appears (for reasons unknown) to affect the
 		// amount of gas reported by the GAS bytecode.
-//		json.put("gasLimit", Hex.toHexString(env.currentGasLimit));
-		//json.put("pre",pre.toJSON());
+		json.put("gasLimit", Hex.toHexString(env.currentGasLimit));
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile("geth_prestate", ".json", bytes);
 	}
