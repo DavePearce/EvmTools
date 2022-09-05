@@ -253,7 +253,16 @@ public class Geth extends AbstractExecutable {
 		JSONObject json = tx.toJSON();
 		//
 		json.put("alloc",pre.toJSON());
+		json.put("coinbase", Hex.toHexString(env.currentCoinbase));
 		json.put("difficulty", Hex.toHexString(env.currentDifficulty));
+		// FIXME: block number is hardcoded because we cannot create a gensis block with
+		// a number > 0.
+		//json.put("number", Hex.toHexString(env.currentNumber));
+		json.put("number", "0x0");
+		json.put("timestamp", Hex.toHexString(env.currentTimestamp));
+		// FIXME: commented out because it appears (for reasons unknown) to affect the
+		// amount of gas reported by the GAS bytecode.
+//		json.put("gasLimit", Hex.toHexString(env.currentGasLimit));
 		//json.put("pre",pre.toJSON());
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile("geth_prestate", ".json", bytes);
