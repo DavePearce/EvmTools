@@ -94,7 +94,7 @@ public class Main {
 					}
 				}
 			}
-			TraceTest tt = new TraceTest(st.getName(), state, forks);
+			TraceTest tt = new TraceTest(st.getName(), state, st.getEnvironment(), forks);
 			json.put(st.getName(),tt.toJSON(abbreviate));
 		}
 		return json;

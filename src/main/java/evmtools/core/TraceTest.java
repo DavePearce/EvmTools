@@ -13,7 +13,6 @@
  */
 package evmtools.core;
 
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +23,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtools.core.StateTest.Instance;
 import evmtools.core.Transaction.Expectation;
 
 public class TraceTest {
@@ -37,13 +35,18 @@ public class TraceTest {
 	 */
 	private final WorldState state;
 	/**
+	 * Various environmental parameters (e.g. difficulty).
+	 */
+	private final Environment env;
+	/**
 	 * Specific instances of this trace test (arranged by fork).
 	 */
 	private final Map<String,List<Instance>> forks;
 
-	public TraceTest(String name, WorldState state, Map<String, List<Instance>> instances) {
+	public TraceTest(String name, WorldState state, Environment env, Map<String, List<Instance>> instances) {
 		this.name = name;
 		this.state = state;
+		this.env = env;
 		this.forks = instances;
 		// Associate each instance with this test
 		for(List<Instance> is : instances.values()) {
@@ -55,6 +58,10 @@ public class TraceTest {
 
 	public WorldState getWorldState() {
 		return state;
+	}
+
+	public Environment getEnvironment() {
+		return env;
 	}
 
 	@Override
@@ -88,6 +95,7 @@ public class TraceTest {
 	public JSONObject toJSON(boolean abbreviate) throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("pre", state.toJSON());
+		json.put("env", env.toJSON());
 		JSONObject tests = new JSONObject();
 		for(Map.Entry<String,List<Instance>> e : forks.entrySet()) {
 			String fork = e.getKey();
@@ -111,6 +119,7 @@ public class TraceTest {
 	 */
 	public static TraceTest fromJSON(String name, JSONObject json) throws JSONException {
 		WorldState state = WorldState.fromJSON(json.getJSONObject("pre"));
+		Environment env = Environment.fromJSON(json.getJSONObject("env"));
 		JSONObject tests = json.getJSONObject("tests");
 		Map<String,List<Instance>> forks = new HashMap<>();
 		String[] names = JSONObject.getNames(tests);
@@ -126,7 +135,7 @@ public class TraceTest {
 				forks.put(fork,instances);
 			}
 		}
-		return new TraceTest(name, state, forks);
+		return new TraceTest(name, state, env, forks);
 	}
 
 	public static class Instance {
@@ -139,6 +148,10 @@ public class TraceTest {
 			this.transaction = transaction;
 			this.trace = trace;
 			this.expectation = expectation;
+		}
+
+		public Environment getEnvironment() {
+			return parent.getEnvironment();
 		}
 
 		public WorldState getWorldState() {
