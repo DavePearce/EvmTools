@@ -160,6 +160,7 @@ public class Bytecodes {
 	public static final int CALLCODE = 0xf2;
 	public static final int RETURN = 0xf3;
 	public static final int DELEGATECALL = 0xf4;
+	public static final int CREATE2 = 0xf5;
 	public static final int STATICCALL = 0xfa;
 	public static final int REVERT = 0xfd;
 	public static final int INVALID = 0xfe;
@@ -313,6 +314,7 @@ public class Bytecodes {
 		opcodes[CALLCODE] = "CALLCODE";
 		opcodes[RETURN] = "RETURN";
 		opcodes[DELEGATECALL] = "DELEGATECALL";
+		opcodes[CREATE2] = "CREATE2";
 		opcodes[STATICCALL] = "STATICCALL";
 		opcodes[REVERT] = "REVERT";
 		opcodes[INVALID] = "INVALID";
@@ -326,6 +328,9 @@ public class Bytecodes {
 	 * @return
 	 */
 	public static String toString(int opcode) {
+		if(opcodes[opcode] == null) {
+			throw new IllegalArgumentException("missing bytecode string " + String.format("%02x",opcode));
+		}
 		return opcodes[opcode];
 	}
 }
