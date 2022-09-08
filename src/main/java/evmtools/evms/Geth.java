@@ -16,13 +16,16 @@ package evmtools.evms;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 
 import org.json.JSONArray;
@@ -33,6 +36,7 @@ import evmtools.core.Environment;
 import evmtools.core.Trace;
 import evmtools.core.Transaction;
 import evmtools.core.WorldState;
+import evmtools.core.Trace.Exception;
 import evmtools.util.AbstractExecutable;
 import evmtools.util.Hex;
 
@@ -84,8 +88,10 @@ public class Geth extends AbstractExecutable {
 			command.add(Hex.toHexString(tx.gasPrice));
 			command.add("--sender");
 			command.add(Hex.toHexString(tx.sender));
-			command.add("--receiver");
-			command.add(Hex.toHexString(tx.to));
+			if(tx.to != null) {
+				command.add("--receiver");
+				command.add(Hex.toHexString(tx.to));
+			}
 			command.add("--code");
 			command.add(Hex.toHexString(tx.getCode(pre)));
 			command.add("run");
@@ -197,24 +203,124 @@ public class Geth extends AbstractExecutable {
 		while (scanner.hasNextLine()) {
 			String line = scanner.nextLine();
 			JSONObject element = new JSONObject(line);
-			if(!shouldIgnore(element)) {
-				elements.add(Trace.Element.fromJSON(element));
-			}
+			//if(!shouldIgnore(element)) {
+			parseElement(element, elements);
+			//}
 		}
 		scanner.close();
 		return new Trace(elements);
 	}
 
-	private static boolean shouldIgnore(JSONObject element) throws JSONException {
-		// NOTE: this is basically needed to work around some issues with Geth. For
-		// example, certain errors produce rather inconsistent output. For example, an
-		// invalid jump destination ends up with two steps in the trace (of which we can
-		// ignore the latter).
-		if(element.has("pc") && element.has("error")) {
-			return element.getString("error").equals("invalid jump destination");
+	public static void parseElement(JSONObject json, List<Trace.Element> elements) throws JSONException {
+		if (json.has("error") && json.has("output")) {
+			String err = json.getString("error");
+			// Abnormal return (e.g. REVERT or exception)
+			if (err.equals("execution reverted")) {
+				byte[] data = Hex.toBytes(json.getString("output"));
+				elements.add(new Trace.Reverts(data));
+			}
+		} else if (json.has("output")) {
+			// Normal return (e.g. STOP or RETURNS)
+			byte[] data = Hex.toBytes(json.getString("output"));
+			elements.add(new Trace.Returns(data));
+		} else if (json.has("pc")) {
+			Trace.Step step = parseStep(json);
+			if(!json.has("error")) {
+				// Easy case: no error.
+				elements.add(step);
+			} else {
+				String err = json.getString("error");
+				if(err.equals("execution reverted")) {
+					// NOTE: whilst we could try to manage this by inserting the expected instance
+					// of <code>Trace.Reverts</code>, we would still have to figure out the right
+					// data to supply..
+					// elements.add(new Trace.Reverts(new byte[0]));
+				} else {
+					// Have an error, therefore need to decide whether the step is included or not.
+					Exception.Error e = parseError(err);
+					if(!isPostError(e)) {
+						elements.add(step);
+					}
+					elements.add(new Trace.Exception(e));
+				}
+			}
+		} else {
+			throw new IllegalArgumentException("unknown trace record: " + json.toString());
 		}
-		//
-		return false;
+	}
+
+	/**
+	 * Parse an atomic execution step from a given JSON object.
+	 *
+	 * @param json
+	 * @return
+	 * @throws JSONException
+	 */
+	private static Trace.Step parseStep(JSONObject json) throws JSONException {
+		int pc = json.getInt("pc");
+		int op = json.getInt("op");
+		// Memory is not usually reported until it is actually assigned something.
+		byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
+		BigInteger[] stack = Trace.parseStackArray(json.getJSONArray("stack"));
+		Map<BigInteger, BigInteger> storage;
+		if (json.has("storage")) {
+			storage = Trace.parseStorageMap(json.getJSONObject("storage"));
+		} else {
+			storage = new HashMap<>();
+		}
+		return new Trace.Step(pc, op, stack, memory, storage);
+	}
+
+	/**
+	 * Convert a Geth error message into an <code>Trace.Exception.Error</code>
+	 * object.
+	 *
+	 * @param err
+	 * @return
+	 */
+	private static Trace.Exception.Error parseError(String err) {
+		switch(err) {
+		case "gas uint64 overflow":
+		case "out of gas":
+			return Exception.Error.INSUFFICIENT_GAS;
+		case "invalid jump destination":
+			return Exception.Error.INVALID_JUMPDEST;
+		case "return data out of bounds":
+			return Exception.Error.RETURNDATA_OVERFLOW;
+		case "returndata overflow":
+			return Exception.Error.RETURNDATA_OVERFLOW;
+		case "call depth exceeded":
+			return Exception.Error.CALLDEPTH_EXCEEDED;
+		case "unknown":
+			return Exception.Error.UNKNOWN;
+		default:
+			if(err.startsWith("stack underflow")) {
+				return Exception.Error.STACK_UNDERFLOW;
+			} else if(err.startsWith("stack limit reached")) {
+				return Exception.Error.STACK_OVERFLOW;
+			} else if(err.startsWith("invalid opcode")) {
+				return Exception.Error.INVALID_OPCODE;
+			} else {
+				return Exception.Error.UNKNOWN;
+			}
+		}
+	}
+
+	/**
+	 * A post error is something which is not an immediate pre-condition violation.
+	 *
+	 * @param err
+	 * @return
+	 * @throws JSONException
+	 */
+	private static boolean isPostError(Trace.Exception.Error err) throws JSONException {
+		switch(err) {
+		case RETURNDATA_OVERFLOW:
+		case INVALID_JUMPDEST:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	private static String createAllocFile(Path dir, WorldState pre)

@@ -216,8 +216,9 @@ public class Hex {
 	public static String toHexString(BigInteger i, int len) {
 		String s = i.toString(16);
 		//
-		if (s.length() > len) {
-			throw new IllegalArgumentException("invalid hex string (too long)");
+		if (s.length() > (len * 2)) {
+			throw new IllegalArgumentException("invalid hex string (too long) --- \"" + s + "\" is " + s.length()
+					+ " chars, but expecting " + len);
 		} else {
 			StringBuilder sb = new StringBuilder();
 			sb.append("0x");

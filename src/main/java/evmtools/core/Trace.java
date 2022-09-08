@@ -123,20 +123,19 @@ public class Trace {
 		 * @throws JSONException
 		 */
 		public static Trace.Element fromJSON(JSONObject json) throws JSONException {
-			if (json.has("error") && json.has("output")) {
-				// Abnormal return (e.g. REVERT or exception)
-				if (json.getString("error").equals("execution reverted")) {
-					byte[] data = Hex.toBytes(json.getString("output"));
-					return new Trace.Reverts(data);
-				} else {
-					// FIXME: confirm error code.
-					return new Trace.Exception(Exception.Error.UNKNOWN);
-				}
-			} else if (json.has("output")) {
+			if (json.has("revert")) {
+				byte[] data = Hex.toBytes(json.getString("revert"));
+				return new Trace.Reverts(data);
+			} else if (json.has("error")) {
+				// Parse error message into the appropriate error type. This is not super
+				// pretty.
+				String err = json.getString("error");
+				return new Trace.Exception(Exception.Error.valueOf(err));
+			} else if (json.has("return")) {
 				// Normal return (e.g. STOP or RETURNS)
-				byte[] data = Hex.toBytes(json.getString("output"));
+				byte[] data = Hex.toBytes(json.getString("return"));
 				return new Trace.Returns(data);
-			} else {
+			} else if (json.has("pc")) {
 				int pc = json.getInt("pc");
 				int op = json.getInt("op");
 				// Memory is not usually reported until it is actually assigned something.
@@ -150,6 +149,8 @@ public class Trace {
 				}
 				//
 				return new Trace.Step(pc, op, stack, memory, storage);
+			} else {
+				throw new IllegalArgumentException("unknown trace record: " + json.toString());
 			}
 		}
 	}
@@ -166,7 +167,6 @@ public class Trace {
 		public final BigInteger[] stack;
 		public final byte[] memory;
 		public final HashMap<BigInteger,BigInteger> storage;
-		// FIXME: support storage!
 
 		public Step(int pc, int op, BigInteger[] stack, byte[] memory, Map<BigInteger,BigInteger> storage) {
 			this.pc = pc;
@@ -265,7 +265,7 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("output",Hex.toHexString(data));
+			json.put("return",Hex.toHexString(data));
 			return json;
 		}
 	}
@@ -302,8 +302,7 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("error","execution reverted");
-			json.put("output",Hex.toHexString(data));
+			json.put("revert",Hex.toHexString(data));
 			return json;
 		}
 	}
@@ -324,8 +323,9 @@ public class Trace {
 			STACK_UNDERFLOW,
 			STACK_OVERFLOW,
 			MEMORY_OVERFLOW,
+			RETURNDATA_OVERFLOW,
 			INVALID_JUMPDEST,
-			CALLDEPTH_EXCEEDED
+			CALLDEPTH_EXCEEDED;
 		}
 
 		private final Error code;
@@ -352,13 +352,12 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("error","");
-			json.put("output","");
+			json.put("error",code.toString());
 			return json;
 		}
 	}
 
-	private static BigInteger[] parseStackArray(JSONArray arr) throws JSONException {
+	public static BigInteger[] parseStackArray(JSONArray arr) throws JSONException {
 		BigInteger[] is = new BigInteger[arr.length()];
 		for (int i = 0; i != is.length; ++i) {
 			is[i] = Hex.toBigInt(arr.getString(i));
@@ -374,7 +373,7 @@ public class Trace {
 		return arr;
 	}
 
-	private static Map<BigInteger, BigInteger> parseStorageMap(JSONObject json) throws JSONException {
+	public static Map<BigInteger, BigInteger> parseStorageMap(JSONObject json) throws JSONException {
 		if (json == null) {
 			return new HashMap<>();
 		} else {
