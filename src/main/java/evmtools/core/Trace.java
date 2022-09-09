@@ -341,12 +341,16 @@ public class Trace {
 
 		@Override
 		public boolean equals(Object o) {
-			return o instanceof Exception;
+			if (o instanceof Exception) {
+				Exception e = (Exception) o;
+				return code.equals(e.code);
+			}
+			return false;
 		}
 
 		@Override
 		public int hashCode() {
-			return 0;
+			return code.hashCode();
 		}
 
 		@Override
