@@ -44,7 +44,7 @@ public class Bytecodes {
 	public static final int SHR = 0x1c;
 	public static final int SAR = 0x1d;
 	// 20s: SHA3
-	public static final int SHA3 = 0x20;
+	public static final int KECCAK256 = 0x20;
 	// 30s: Environment Information
 	public static final int ADDRESS = 0x30;
 	public static final int BALANCE = 0x31;
@@ -198,7 +198,7 @@ public class Bytecodes {
 		opcodes[SHR] = "SHR";
 		opcodes[SAR] = "SAR";
 		// 20s: SHA3
-		opcodes[SHA3] = "SHA3";
+		opcodes[KECCAK256] = "KECCAK256";
 		// 30s: Environment Information
 		opcodes[ADDRESS] = "ADDRESS";
 		opcodes[BALANCE] = "BALANCE";

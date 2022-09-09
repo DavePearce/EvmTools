@@ -138,6 +138,7 @@ public class Trace {
 			} else if (json.has("pc")) {
 				int pc = json.getInt("pc");
 				int op = json.getInt("op");
+				long gas = json.getLong("gas");
 				// Memory is not usually reported until it is actually assigned something.
 				byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
 				BigInteger[] stack = parseStackArray(json.getJSONArray("stack"));
@@ -148,7 +149,7 @@ public class Trace {
 					storage = new HashMap<>();
 				}
 				//
-				return new Trace.Step(pc, op, stack, memory, storage);
+				return new Trace.Step(pc, op, gas, stack, memory, storage);
 			} else {
 				throw new IllegalArgumentException("unknown trace record: " + json.toString());
 			}
@@ -164,13 +165,15 @@ public class Trace {
 	public static class Step implements Element {
 		public final int pc;
 		public final int op;
+		public final long gas;
 		public final BigInteger[] stack;
 		public final byte[] memory;
 		public final HashMap<BigInteger,BigInteger> storage;
 
-		public Step(int pc, int op, BigInteger[] stack, byte[] memory, Map<BigInteger,BigInteger> storage) {
+		public Step(int pc, int op, long gas, BigInteger[] stack, byte[] memory, Map<BigInteger,BigInteger> storage) {
 			this.pc = pc;
 			this.op = op;
+			this.gas = gas;
 			this.stack = stack;
 			this.memory = memory;
 			this.storage = new HashMap<>(storage);
@@ -180,8 +183,8 @@ public class Trace {
 		public boolean equals(Object o) {
 			if(o instanceof Step) {
 				Step s = (Step) o;
-				return pc == s.pc && op == s.op && Arrays.equals(stack, s.stack) && Arrays.equals(memory, s.memory)
-						&& storage.equals(s.storage);
+				return pc == s.pc && op == s.op && gas == s.gas && Arrays.equals(stack, s.stack)
+						&& Arrays.equals(memory, s.memory) && storage.equals(s.storage);
 			}
 			return false;
 		}
@@ -197,14 +200,15 @@ public class Trace {
 			String st = storage.toString();
 			String m = Hex.toAbbreviatedHexString(memory);
 			String os = Bytecodes.toString(op);
+			String g = Hex.toHexString(BigInteger.valueOf(gas));
 			if(memory.length > 0 && storage.size() > 0) {
-				return String.format("{%d:%s, stack=%s, memory=%s, storage=%s}\n", pc, os, s, m, st);
+				return String.format("{%d:%s, gas=%s, stack=%s, memory=%s, storage=%s}\n", pc, os, g, s, m, st);
 			} else if(memory.length > 0) {
-				return String.format("{%d:%s, stack=%s, memory=%s}\n", pc, os, s, m);
+				return String.format("{%d:%s, gas=%s, stack=%s, memory=%s}\n", pc, os, g,s,  m);
 			} else if(storage.size() > 0) {
-				return String.format("{%d:%s, stack=%s, storage=%s}\n", pc, os, s, st);
+				return String.format("{%d:%s, gas=%s, stack=%s, storage=%s}\n", pc, os, g, s, st);
 			} else {
-				return String.format("{%d:%s, stack=%s}\n", pc, os, s);
+				return String.format("{%d:%s, gas=%s, stack=%s}\n", pc, os, g, s);
 			}
 		}
 
@@ -213,6 +217,7 @@ public class Trace {
 			JSONObject json = new JSONObject();
 			json.put("pc", pc);
 			json.put("op", op);
+			json.put("gas", gas);
 			json.put("stack", toStackArray(stack));
 			if(memory.length != 0) {
 				// Only include if something to show.
