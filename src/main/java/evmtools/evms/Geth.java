@@ -259,6 +259,7 @@ public class Geth extends AbstractExecutable {
 	private static Trace.Step parseStep(JSONObject json) throws JSONException {
 		int pc = json.getInt("pc");
 		int op = json.getInt("op");
+		int depth = json.getInt("depth");
 		// long gas = json.getLong("gas");
 		long gas = 0; // for now
 		// Memory is not usually reported until it is actually assigned something.
@@ -270,7 +271,7 @@ public class Geth extends AbstractExecutable {
 		} else {
 			storage = new HashMap<>();
 		}
-		return new Trace.Step(pc, op, gas, stack, memory, storage);
+		return new Trace.Step(pc, op, depth, gas, stack, memory, storage);
 	}
 
 	/**
