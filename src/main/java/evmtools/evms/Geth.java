@@ -260,7 +260,7 @@ public class Geth extends AbstractExecutable {
 		int pc = json.getInt("pc");
 		int op = json.getInt("op");
 		int depth = json.getInt("depth");
-		// long gas = json.getLong("gas");
+//		long gas = Hex.toBigInt(json.getString("gas")).longValueExact();
 		long gas = 0; // for now
 		// Memory is not usually reported until it is actually assigned something.
 		byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
