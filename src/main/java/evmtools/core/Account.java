@@ -53,6 +53,11 @@ public class Account {
 		return Objects.hash(balance,nonce,storage) ^ Arrays.hashCode(code);
 	}
 
+	@Override
+	public String toString() {
+		return "<" + Hex.toHexString(balance) + ":" + Hex.toHexString(nonce) + ":" + storage + ":" + Hex.toHexString(code) + ">";
+	}
+
 	/**
 	 * Convert account information into JSON.
 	 *
