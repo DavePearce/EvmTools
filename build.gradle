@@ -12,6 +12,9 @@
  * under the License.
  */
 
+plugins {
+    id('io.github.gradle-nexus.publish-plugin') version "1.1.0"
+}
 // Apply the java plugin to add support for Java
 apply plugin: 'java'
 // Apply eclipse plugin to add support for Eclipse
@@ -32,7 +35,7 @@ repositories {
 }
 
 group = 'org.whiley'
-version = '0.3.13'
+version = '0.3.14'
 
 java {
     withJavadocJar()
@@ -78,6 +81,12 @@ task gen(type: JavaExec) {
 // Maven Central
 // ======================================================================
 
+nexusPublishing {
+    repositories {
+        sonatype()
+    }
+}
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
@@ -114,17 +123,6 @@ publishing {
                     }
                 }
             }            
-        }
-    }
-    repositories {
-        maven {
-            def snapshotsUrl = 'https://oss.sonatype.org/content/repositories/snapshots'
-            def releaseUrl = 'https://oss.sonatype.org/service/local/staging/deploy/maven2/'
-            url = version.endsWith('SNAPSHOT') ? snapshotUrl : releaseUrl
-            credentials {
-                username sonatypeUsername
-                password sonatypePassword
-            }
         }
     }
 }
