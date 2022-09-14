@@ -69,6 +69,7 @@ public class Bytecodes {
 	public static final int DIFFICULTY = 0x44;
 	public static final int GASLIMIT = 0x45;
 	public static final int CHAINID = 0x46;
+	public static final int SELFBALANCE = 0x47;
 	// 50s: Stack, Memory Storage and Flow Operations
 	public static final int POP = 0x50;
 	public static final int MLOAD = 0x51;
