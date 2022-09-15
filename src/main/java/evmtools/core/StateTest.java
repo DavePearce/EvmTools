@@ -221,6 +221,13 @@ public class StateTest {
 			this.expect = expect;
 		}
 
+		public String getID() {
+			int g = indexes.get("gas");
+			int d = indexes.get("data");
+			int v = indexes.get("value");
+			return String.format("%s_%d_%d_%d",fork,g,d,v);
+		}
+
 		public String getName() {
 			int g = indexes.get("gas");
 			int d = indexes.get("data");

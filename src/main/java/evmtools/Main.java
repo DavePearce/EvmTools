@@ -84,10 +84,11 @@ public class Main {
 				ArrayList<TraceTest.Instance> instances = new ArrayList<>();
 				for (StateTest.Instance inst : st.getInstances(fork)) {
 					if (filter.test(fork, inst)) {
+						String id = inst.getID();
 						Transaction tx = inst.instantiate();
 						Trace t = geth.run(inst.getEnvironment(), state, tx);
 						// Test can convert transaction to JSON, and then back again.
-						instances.add(new TraceTest.Instance(tx, t, inst.expect));
+						instances.add(new TraceTest.Instance(id, tx, t, inst.expect));
 					}
 					if (instances.size() != 0) {
 						forks.put(fork, instances);

@@ -140,11 +140,13 @@ public class TraceTest {
 
 	public static class Instance {
 		private TraceTest parent;
+		private final String id;
 		private final Transaction transaction;
 		private final Trace trace;
 		private final Transaction.Expectation expectation;
 
-		public Instance(Transaction transaction, Trace trace, Transaction.Expectation expectation) {
+		public Instance(String id, Transaction transaction, Trace trace, Transaction.Expectation expectation) {
+			this.id = id;
 			this.transaction = transaction;
 			this.trace = trace;
 			this.expectation = expectation;
@@ -172,8 +174,7 @@ public class TraceTest {
 
 		@Override
 		public String toString() {
-			int hash = transaction.hashCode();
-			return String.format("%s_%x",parent.name,hash);
+			return String.format("%s_%s",parent.name,id);
 		}
 
 		/**
@@ -185,6 +186,7 @@ public class TraceTest {
 		 */
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
+			json.put("id", id);
 			json.put("transaction", transaction.toJSON());
 			json.put("trace", trace.toJSON(abbreviate));
 			json.put("expect", expectation.toString());
@@ -194,7 +196,8 @@ public class TraceTest {
 		public static Instance fromJSON(JSONObject json) throws JSONException {
 			Transaction tx = Transaction.fromJSON(json.getJSONObject("transaction"));
 			Trace trace = Trace.fromJSON(json.getJSONArray("trace"));
-			return new Instance(tx, trace, Expectation.valueOf(json.getString("expect")));
+			String id = json.getString("id");
+			return new Instance(id, tx, trace, Expectation.valueOf(json.getString("expect")));
 		}
 	}
 }
