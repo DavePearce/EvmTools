@@ -61,6 +61,7 @@ public class Bytecodes {
 	public static final int EXTCODECOPY = 0x3c;
 	public static final int RETURNDATASIZE = 0x3d;
 	public static final int RETURNDATACOPY = 0x3e;
+	public static final int EXTCODEHASH = 0x3f;
 	// 40s: Block Information
 	public static final int BLOCKHASH = 0x40;
 	public static final int COINBASE = 0x41;
@@ -217,6 +218,7 @@ public class Bytecodes {
 		opcodes[EXTCODECOPY] = "EXTCODECOPY";
 		opcodes[RETURNDATASIZE] = "RETURNDATASIZE";
 		opcodes[RETURNDATACOPY] = "RETURNDATACOPY";
+		opcodes[EXTCODEHASH] = "EXTCODEHASH";
 		// 40s: Block Information
 		opcodes[BLOCKHASH] = "BLOCKHASH";
 		opcodes[COINBASE] = "COINBASE";
@@ -224,6 +226,8 @@ public class Bytecodes {
 		opcodes[NUMBER] = "NUMBER";
 		opcodes[DIFFICULTY] = "DIFFICULTY";
 		opcodes[GASLIMIT] = "GASLIMIT";
+		opcodes[CHAINID] = "CHAINID";
+		opcodes[SELFBALANCE] = "SELFBALANCE";
 		// 50s: Stack, Memory Storage and Flow Operations
 		opcodes[POP] = "POP";
 		opcodes[MLOAD] = "MLOAD";
