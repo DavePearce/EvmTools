@@ -91,6 +91,8 @@ public class Geth extends AbstractExecutable {
 			if(tx.to != null) {
 				command.add("--receiver");
 				command.add(Hex.toHexString(tx.to));
+			} else {
+				command.add("--create");
 			}
 			command.add("--code");
 			command.add(Hex.toHexString(tx.getCode(pre)));
