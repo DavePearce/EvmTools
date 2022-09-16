@@ -18,6 +18,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.zip.GZIPOutputStream;
 
 public interface OutFile {
 	public void print(String text) throws IOException;
@@ -52,11 +53,13 @@ public interface OutFile {
 
 	public static class LazyOutFile implements OutFile {
 		private final File file;
+		private final boolean gzip;
 		private FileOutputStream fout;
 		private PrintStream pout;
 
-		public LazyOutFile(File file) {
+		public LazyOutFile(File file, boolean gzip) {
 			this.file = file;
+			this.gzip = gzip;
 		}
 
 		@Override
@@ -80,7 +83,11 @@ public interface OutFile {
 		private void init() throws IOException {
 			if(pout == null) {
 				fout = new FileOutputStream(file);
-				pout = new PrintStream(fout);
+				if(gzip) {
+					pout = new PrintStream(new GZIPOutputStream(fout));
+				} else {
+					pout = new PrintStream(fout);
+				}
 			}
 		}
 	}
