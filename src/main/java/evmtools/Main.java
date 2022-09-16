@@ -115,6 +115,7 @@ public class Main {
 			// What options do we need?
 			new Option("dir", true, "Read all state tests from given dir"),
 			new Option("out", true, "Directory to write generate files"),
+			new Option("gzip", false, "Compress generated files using gzip"),
 			new Option("fork", true, "Restrict to a particular fork (e.g. 'Berlin')."),
 			new Option("prettify", false, "Output \"pretty\" json"),
 			new Option("abbreviate", true, "Enable/Disable hex string abbreviation (default is enabled)"),
@@ -174,8 +175,7 @@ public class Main {
 	}
 
 	public static void run(CommandLine cmd, Path dir, String filename) throws IOException, JSONException {
-		OutFile out = determineOutFile(cmd, filename);
-
+		OutFile out = determineOutFile(cmd, filename, cmd.hasOption("gzip"));
 		Main m = new Main(dir.resolve(filename), out);
 		if (cmd.hasOption("prettify")) {
 			m = m.prettify(true);
@@ -191,14 +191,15 @@ public class Main {
 		out.close();
 	}
 
-	public static OutFile determineOutFile(CommandLine cmd, String filename) {
+	public static OutFile determineOutFile(CommandLine cmd, String filename, boolean gzip) {
 		if (cmd.hasOption("out")) {
+			String outname = gzip ? filename +".gz" : filename;
 			Path outdir = Path.of(cmd.getOptionValue("out"));
-			Path outfile = outdir.resolve(filename);
+			Path outfile = outdir.resolve(outname);
 			// Make enclosing directories as necessary
 			outfile.toFile().getParentFile().mkdirs();
 			// Create relevant output streams.
-			return new OutFile.LazyOutFile(outfile.toFile());
+			return new OutFile.LazyOutFile(outfile.toFile(),gzip);
 		} else {
 			// Default is to write output to console
 			return new OutFile.PrintOutFile(System.out);
