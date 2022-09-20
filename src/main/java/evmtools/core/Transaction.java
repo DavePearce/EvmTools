@@ -43,6 +43,10 @@ public class Transaction {
 		 */
 		TypeNotSupported,
 		/**
+		 * Nonce has maximum value and cannot be incremented.
+		 */
+		NonceHasMaxValue,
+		/**
 		 * Indicates test ran but caused a revert.
 		 */
 		REVERT,

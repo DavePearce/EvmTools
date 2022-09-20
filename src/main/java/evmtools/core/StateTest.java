@@ -290,6 +290,10 @@ public class StateTest {
 					kind = Transaction.Expectation.TypeNotSupported;
 					break;
 				}
+				case "TR_NonceHasMaxValue": {
+					kind = Transaction.Expectation.NonceHasMaxValue;
+					break;
+				}
 				default:
 					throw new RuntimeException("unrecognised exception: " + except);
 				}

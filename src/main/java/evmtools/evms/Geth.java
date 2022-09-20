@@ -262,8 +262,7 @@ public class Geth extends AbstractExecutable {
 		int pc = json.getInt("pc");
 		int op = json.getInt("op");
 		int depth = json.getInt("depth");
-//		long gas = Hex.toBigInt(json.getString("gas")).longValueExact();
-		long gas = 0; // for now
+		long gas = Hex.toBigInt(json.getString("gas")).longValueExact();
 		// Memory is not usually reported until it is actually assigned something.
 		byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
 		BigInteger[] stack = Trace.parseStackArray(json.getJSONArray("stack"));
@@ -295,6 +294,7 @@ public class Geth extends AbstractExecutable {
 		case "returndata overflow":
 			return Exception.Error.RETURNDATA_OVERFLOW;
 		case "call depth exceeded":
+			System.out.println("*** MATCHED");
 			return Exception.Error.CALLDEPTH_EXCEEDED;
 		case "unknown":
 			return Exception.Error.UNKNOWN;
