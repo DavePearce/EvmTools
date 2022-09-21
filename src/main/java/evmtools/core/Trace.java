@@ -345,7 +345,8 @@ public class Trace {
 			NONCE_OVERFLOW,
 			INVALID_JUMPDEST,
 			CALLDEPTH_EXCEEDED,
-			ACCOUNT_COLLISION;
+			ACCOUNT_COLLISION,
+			WRITE_PROTECTION;
 		}
 
 		private final Error code;

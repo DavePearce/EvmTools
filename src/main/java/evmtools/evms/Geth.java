@@ -294,8 +294,9 @@ public class Geth extends AbstractExecutable {
 		case "returndata overflow":
 			return Exception.Error.RETURNDATA_OVERFLOW;
 		case "call depth exceeded":
-			System.out.println("*** MATCHED");
 			return Exception.Error.CALLDEPTH_EXCEEDED;
+		case "write protection":
+			return Exception.Error.WRITE_PROTECTION;
 		case "unknown":
 			return Exception.Error.UNKNOWN;
 		default:
