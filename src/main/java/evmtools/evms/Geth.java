@@ -261,7 +261,8 @@ public class Geth extends AbstractExecutable {
 	private static Trace.Step parseStep(JSONObject json) throws JSONException {
 		int pc = json.getInt("pc");
 		int op = json.getInt("op");
-		int depth = json.getInt("depth");
+		// NOTE: Geth reports depth starting at 1, when in fact it should start at 0.  Therefore, we normalise at the point of generation here.
+		int depth = json.getInt("depth") - 1;
 		long gas = Hex.toBigInt(json.getString("gas")).longValueExact();
 		// Memory is not usually reported until it is actually assigned something.
 		byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
