@@ -413,7 +413,7 @@ public class Trace {
 
 	public static String indent(int depth) {
 		StringBuilder bdr = new StringBuilder();
-		for (int i = 1; i < Math.min(10, depth); ++i) {
+		for (int i = 0; i < Math.min(10, depth); ++i) {
 			bdr.append(". ");
 		}
 		if(depth >= 10) {
