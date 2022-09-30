@@ -91,11 +91,11 @@ public class Geth extends AbstractExecutable {
 			if(tx.to != null) {
 				command.add("--receiver");
 				command.add(Hex.toHexString(tx.to));
+				command.add("--code");
+				command.add(Hex.toHexString(tx.getCode(pre)));
 			} else {
 				command.add("--create");
 			}
-			command.add("--code");
-			command.add(Hex.toHexString(tx.getCode(pre)));
 			command.add("run");
 			//
 			String out = exec(command);
@@ -154,9 +154,7 @@ public class Geth extends AbstractExecutable {
 			command.add("--output.alloc");
 			command.add("alloc-out.json");
 			//
-			System.out.println("COMMAND: " + command);
 			String out = exec(command);
-			System.out.println("SYSOUT: " + out);
 			//
 			if(out != null) {
 				// Parse into JSON. Geth produces one line per trace element.
