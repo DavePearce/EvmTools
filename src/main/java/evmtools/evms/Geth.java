@@ -61,6 +61,24 @@ public class Geth extends AbstractExecutable {
 	}
 
 	/**
+	 * Check whether Geth is installed or not and report version.
+	 *
+	 * @return
+	 */
+	public String version() {
+		ArrayList<String> command = new ArrayList<>();
+		command.add(cmd);
+		command.add("--version");
+		try {
+			return exec(command);
+		} catch (IOException e) {
+			return null;
+		} catch (InterruptedException e) {
+			return null;
+		}
+	}
+
+	/**
 	 * Execute a given transaction using the EVM.
 	 *
 	 * @param tx
