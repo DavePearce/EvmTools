@@ -150,6 +150,14 @@ public class Main {
 	public static void main(String[] args) throws IOException, JSONException {
 		// Parse command-line arguments.
 		CommandLine cmd = parseCommandLine(args);
+		// Sanity check whether Geth is installed
+		String gethVersion = new Geth().version();
+		if(gethVersion == null) {
+			System.err.println("*** geth not installed");
+			System.exit(1);
+		} else {
+			System.out.println("Geth version: " + gethVersion);
+		}
 		//
 		if (cmd.hasOption("dir")) {
 			Path dir = Path.of(cmd.getOptionValue("dir"));
