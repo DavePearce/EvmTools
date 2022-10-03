@@ -73,15 +73,14 @@ public class Main {
 		return this;
 	}
 
-	public void run() throws IOException, JSONException {
+	public int run() throws IOException, JSONException {
 		// Read contents of fixture file
 		String contents = Files.readString(inFile);
 		JSONObject json = convertState2TraceTest(new JSONObject(contents));
-		if(prettify) {
-			out.print(json.toString(2));
-		} else {
-			out.print(json.toString()); // crashes here.
-		}
+		// Following line does cause a crash in some cases.
+		String jsonStr = prettify ? json.toString(2) : json.toString();
+		out.print(jsonStr);
+		return jsonStr.length();
 	}
 
 	public JSONObject convertState2TraceTest(JSONObject stfile) throws JSONException {
@@ -123,6 +122,7 @@ public class Main {
 	private static final String RESET = "\u001b[0m";
 	private static final PathMatcher DEFAULT_INCLUDES = FileSystems.getDefault().getPathMatcher("glob:**/*.json");
 	private static final PathMatcher DEFAULT_EXCLUDES = (p) -> false;
+	private static final int ONE_MB = (1024 * 1024);
 
 	private static final Option[] OPTIONS = new Option[] {
 			// What options do we need?
@@ -184,8 +184,12 @@ public class Main {
 				System.out.print(YELLOW + "\r(" + i + "/" + filenames.size() + ") ");
 				System.out.print(RESET + f);
 				try {
-					run(cmd, dir, f);
-					System.out.println();
+					int len = run(cmd, dir, f);
+					if(len >= ONE_MB) {
+						System.out.println(GREEN + " [" + len/ONE_MB + "mb]");
+					} else {
+						System.out.println();
+					}
 				} catch (Exception e) {
 					System.out.println(RED + " [" + e.getMessage() + "]");
 				}
@@ -200,7 +204,7 @@ public class Main {
 		}
 	}
 
-	public static void run(CommandLine cmd, Path dir, Path filename) throws IOException, JSONException {
+	public static int run(CommandLine cmd, Path dir, Path filename) throws IOException, JSONException {
 		OutFile out = determineOutFile(cmd, filename, cmd.hasOption("gzip"));
 		Main m = new Main(dir.resolve(filename), out);
 		if (cmd.hasOption("prettify")) {
@@ -213,8 +217,9 @@ public class Main {
 			String fork = cmd.getOptionValue("fork");
 			m.filter((f, i) -> f.equals(fork));
 		}
-		m.run();
+		int len = m.run();
 		out.close();
+		return len;
 	}
 
 	public static OutFile determineOutFile(CommandLine cmd, Path filename, boolean gzip) {
