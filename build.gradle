@@ -35,7 +35,7 @@ repositories {
 }
 
 group = 'org.whiley'
-version = '0.3.22'
+version = '0.3.23'
 
 java {
     withJavadocJar()

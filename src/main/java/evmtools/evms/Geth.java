@@ -354,6 +354,7 @@ public class Geth extends AbstractExecutable {
 		case RETURNDATA_OVERFLOW:
 		case INVALID_JUMPDEST:
 		case WRITE_PROTECTION:
+		case INVALID_OPCODE:
 			return true;
 		default:
 			return false;

@@ -335,8 +335,9 @@ public class Bytecodes {
 	 */
 	public static String toString(int opcode) {
 		if(opcodes[opcode] == null) {
-			throw new IllegalArgumentException("missing bytecode string " + String.format("%02x",opcode));
+			return "???";
+		} else {
+			return opcodes[opcode];
 		}
-		return opcodes[opcode];
 	}
 }
