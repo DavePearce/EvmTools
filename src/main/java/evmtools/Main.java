@@ -14,13 +14,18 @@
 package evmtools;
 
 import java.io.IOException;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiPredicate;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.cli.*;
 import org.json.JSONException;
@@ -105,11 +110,13 @@ public class Main {
 	// Command-Line Interface
 	// =====================================================================================
 
-	private static String RED = "\u001b[31m";
-	private static String GREEN = "\u001b[32m";
-	private static String WHITE = "\u001b[37m";
-	private static String YELLOW = "\u001b[33m";
-	private static String RESET = "\u001b[0m";
+	private static final String RED = "\u001b[31m";
+	private static final String GREEN = "\u001b[32m";
+	private static final String WHITE = "\u001b[37m";
+	private static final String YELLOW = "\u001b[33m";
+	private static final String RESET = "\u001b[0m";
+	private static final PathMatcher DEFAULT_INCLUDES = FileSystems.getDefault().getPathMatcher("glob:**/*.json");
+	private static final PathMatcher DEFAULT_EXCLUDES = (p) -> false;
 
 	private static final Option[] OPTIONS = new Option[] {
 			// What options do we need?
@@ -119,6 +126,8 @@ public class Main {
 			new Option("fork", true, "Restrict to a particular fork (e.g. 'Berlin')."),
 			new Option("prettify", false, "Output \"pretty\" json"),
 			new Option("abbreviate", true, "Enable/Disable hex string abbreviation (default is enabled)"),
+			new Option("excludes", true, "Don't include tests matching globs in this file."),
+			new Option("includes", true, "Only include tests matching globs in this file."),
 	};
 
 	public static CommandLine parseCommandLine(String[] args) {
@@ -144,17 +153,20 @@ public class Main {
 		//
 		if (cmd.hasOption("dir")) {
 			Path dir = Path.of(cmd.getOptionValue("dir"));
-			ArrayList<String> filenames = new ArrayList<>();
+			ArrayList<Path> filenames = new ArrayList<>();
+			PathMatcher includes = parseGlobFile(cmd.getOptionValue("includes"), DEFAULT_INCLUDES);
+			PathMatcher excludes = parseGlobFile(cmd.getOptionValue("excludes"), DEFAULT_EXCLUDES);
 			//
 			Files.walk(dir).forEach(f -> {
-				String fs = dir.relativize(f).toString();
-				if (fs.endsWith(".json")) {
-					filenames.add(fs);
+				Path p = dir.relativize(f);
+				if(includes.matches(p) && !excludes.matches(p)) {
+					filenames.add(p);
 				}
 			});
 			//
 			for (int i = 0; i != filenames.size(); ++i) {
-				String f = filenames.get(i);
+				Path f = filenames.get(i);
+				// Check on whitelist
 				System.out.print(YELLOW + "\r(" + i + "/" + filenames.size() + ") ");
 				System.out.print(RESET + f);
 				try {
@@ -169,12 +181,12 @@ public class Main {
 			args = cmd.getArgs();
 			//
 			for (String st : args) {
-				run(cmd, Path.of("."), st);
+				run(cmd, Path.of("."), Path.of(st));
 			}
 		}
 	}
 
-	public static void run(CommandLine cmd, Path dir, String filename) throws IOException, JSONException {
+	public static void run(CommandLine cmd, Path dir, Path filename) throws IOException, JSONException {
 		OutFile out = determineOutFile(cmd, filename, cmd.hasOption("gzip"));
 		Main m = new Main(dir.resolve(filename), out);
 		if (cmd.hasOption("prettify")) {
@@ -191,9 +203,9 @@ public class Main {
 		out.close();
 	}
 
-	public static OutFile determineOutFile(CommandLine cmd, String filename, boolean gzip) {
+	public static OutFile determineOutFile(CommandLine cmd, Path filename, boolean gzip) {
 		if (cmd.hasOption("out")) {
-			String outname = gzip ? filename +".gz" : filename;
+			Path outname = gzip ? filename.resolve(".gz") : filename;
 			Path outdir = Path.of(cmd.getOptionValue("out"));
 			Path outfile = outdir.resolve(outname);
 			// Make enclosing directories as necessary
@@ -203,6 +215,27 @@ public class Main {
 		} else {
 			// Default is to write output to console
 			return new OutFile.PrintOutFile(System.out);
+		}
+	}
+
+	public static PathMatcher parseGlobFile(String filename, PathMatcher def) throws IOException {
+		if (filename == null) {
+			return def;
+		} else {
+			FileSystem fs = FileSystems.getDefault();
+			List<String> lines = Files.readAllLines(Path.of(filename));
+			final List<PathMatcher> matchers = new ArrayList<>();
+			for (String line : lines) {
+				matchers.add(fs.getPathMatcher("glob:" + line));
+			}
+			return (p) -> {
+				for (PathMatcher m : matchers) {
+					if (m.matches(p)) {
+						return true;
+					}
+				}
+				return false;
+			};
 		}
 	}
 }
