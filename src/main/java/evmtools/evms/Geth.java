@@ -353,6 +353,7 @@ public class Geth extends AbstractExecutable {
 		switch(err) {
 		case RETURNDATA_OVERFLOW:
 		case INVALID_JUMPDEST:
+		case WRITE_PROTECTION:
 			return true;
 		default:
 			return false;
