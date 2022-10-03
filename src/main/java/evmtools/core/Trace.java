@@ -144,6 +144,7 @@ public class Trace {
 				int pc = json.getInt("pc");
 				int op = json.getInt("op");
 				int depth = json.getInt("depth");
+				int stackSize = json.getInt("stackSize");
 				long gas = json.getLong("gas");
 				// Memory is not usually reported until it is actually assigned something.
 				byte[] memory = Hex.toBytesFromAbbreviated(json.optString("memory", "0x"));
@@ -155,7 +156,7 @@ public class Trace {
 					storage = new HashMap<>();
 				}
 				//
-				return new Trace.Step(pc, op, depth, gas, stack, memory, storage);
+				return new Trace.Step(pc, op, depth, gas, stackSize, stack, memory, storage);
 			} else {
 				throw new IllegalArgumentException("unknown trace record: " + json.toString());
 			}
@@ -173,15 +174,17 @@ public class Trace {
 		public final int op;
 		public final int depth;
 		public final long gas;
+		public final int stackSize;
 		public final BigInteger[] stack;
 		public final byte[] memory;
 		public final HashMap<BigInteger,BigInteger> storage;
 
-		public Step(int pc, int op, int depth, long gas, BigInteger[] stack, byte[] memory, Map<BigInteger,BigInteger> storage) {
+		public Step(int pc, int op, int depth, long gas, int stackSize, BigInteger[] stack, byte[] memory, Map<BigInteger,BigInteger> storage) {
 			this.pc = pc;
 			this.op = op;
 			this.depth = depth;
 			this.gas = gas;
+			this.stackSize = stackSize;
 			this.stack = stack;
 			this.memory = memory;
 			this.storage = new HashMap<>(storage);
@@ -191,30 +194,31 @@ public class Trace {
 		public boolean equals(Object o) {
 			if(o instanceof Step) {
 				Step s = (Step) o;
-				return pc == s.pc && op == s.op && depth == s.depth && gas == s.gas && Arrays.equals(stack, s.stack)
-						&& Arrays.equals(memory, s.memory) && storage.equals(s.storage);
+				return pc == s.pc && op == s.op && depth == s.depth && gas == s.gas && stackSize == s.stackSize
+						&& Arrays.equals(stack, s.stack) && Arrays.equals(memory, s.memory)
+						&& storage.equals(s.storage);
 			}
 			return false;
 		}
 
 		@Override
 		public int hashCode() {
-			return pc ^ op ^ Arrays.hashCode(stack) ^ Arrays.hashCode(memory);
+			return pc ^ op ^ stackSize ^ Arrays.hashCode(stack) ^ Arrays.hashCode(memory);
 		}
 
 		@Override
 		public String toString() {
-			String s = Hex.toArrayString(stack);
+			String s = toStackString(stackSize,stack);
 			String st = storage.toString();
 			String m = Hex.toAbbreviatedHexString(memory);
 			String os = Bytecodes.toString(op);
 			String g = Hex.toHexString(BigInteger.valueOf(gas));
 			String indent = indent(depth);
-			if(memory.length > 0 && storage.size() > 0) {
+			if (memory.length > 0 && storage.size() > 0) {
 				return String.format("%s%d:%s, gas=%s, stack=%s, memory=%s, storage=%s", indent, pc, os, g, s, m, st);
-			} else if(memory.length > 0) {
-				return String.format("%s%d:%s, gas=%s, stack=%s, memory=%s", indent, pc, os, g,s,  m);
-			} else if(storage.size() > 0) {
+			} else if (memory.length > 0) {
+				return String.format("%s%d:%s, gas=%s, stack=%s, memory=%s", indent, pc, os, g, s, m);
+			} else if (storage.size() > 0) {
 				return String.format("%s%d:%s, gas=%s, stack=%s, storage=%s", indent, pc, os, g, s, st);
 			} else {
 				return String.format("%s%d:%s, gas=%s, stack=%s", indent, pc, os, g, s);
@@ -228,6 +232,7 @@ public class Trace {
 			json.put("op", op);
 			json.put("depth",depth);
 			json.put("gas", gas);
+			json.put("stackSize", stackSize);
 			json.put("stack", toStackArray(stack));
 			if(memory.length != 0) {
 				// Only include if something to show.
@@ -244,6 +249,27 @@ public class Trace {
 			}
 			// FIXME: include storage
 			return json;
+		}
+
+		private static String toStackString(int size, BigInteger[] items) {
+			final int n = items.length;
+			//
+			if (n >= size) {
+				return Hex.toArrayString(items);
+			} else {
+				StringBuffer buf = new StringBuffer();
+				buf.append("[ (");
+				buf.append(Integer.toString(size - n));
+				buf.append(" items) ... ");
+				for (int i = 0; i != n; ++i) {
+					if (i != 0) {
+						buf.append(", ");
+					}
+					buf.append(Hex.toHexString(items[i]));
+				}
+				buf.append("]");
+				return buf.toString();
+			}
 		}
 	}
 

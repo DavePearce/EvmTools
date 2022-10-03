@@ -43,6 +43,7 @@ public class Main {
 	private final Path inFile;
 	private final OutFile out;
 	private final int timeout = 10; // in seconds;
+	private int stackSize = 10;
 	private boolean prettify = false;
 	private boolean abbreviate = true;
 	private BiPredicate<String,StateTest.Instance> filter = (f,i) -> true;
@@ -67,6 +68,11 @@ public class Main {
 		return this;
 	}
 
+	private Main stackSize(int stackSize) {
+		this.stackSize = stackSize;
+		return this;
+	}
+
 	public void run() throws IOException, JSONException {
 		// Read contents of fixture file
 		String contents = Files.readString(inFile);
@@ -79,7 +85,7 @@ public class Main {
 	}
 
 	public JSONObject convertState2TraceTest(JSONObject stfile) throws JSONException {
-		Geth geth = new Geth().setTimeout(timeout * 1000);
+		Geth geth = new Geth().setTimeout(timeout * 1000).setStackSize(stackSize);
 		JSONObject json = new JSONObject();
 		// Convert
 		for (StateTest st : StateTest.fromJSON(stfile)) {

@@ -23,7 +23,6 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
@@ -38,6 +37,7 @@ import evmtools.core.Transaction;
 import evmtools.core.WorldState;
 import evmtools.core.Trace.Exception;
 import evmtools.util.AbstractExecutable;
+import static evmtools.util.Arrays.trimFront;
 import evmtools.util.Hex;
 
 /**
@@ -55,8 +55,21 @@ public class Geth extends AbstractExecutable {
 	 */
 	private final String cmd = "evm";
 
+	private int stackSize = 10;
+
 	public Geth setTimeout(int timeout) {
 		this.timeout = timeout;
+		return this;
+	}
+
+	/**
+	 * Set the maximum stack size that is stored at every step.
+	 *
+	 * @param stackSize
+	 * @return
+	 */
+	public Geth setStackSize(int stackSize) {
+		this.stackSize = stackSize;
 		return this;
 	}
 
@@ -195,7 +208,7 @@ public class Geth extends AbstractExecutable {
 	// Parsers for trace output
 	// ===============================================================================
 
-	private static Trace readTraceFile(Path dir) throws IOException {
+	private Trace readTraceFile(Path dir) throws IOException {
 		List<Trace> tr = new ArrayList<>();
 		//
 		Files.walk(dir, 10).forEach(f -> {
@@ -215,7 +228,7 @@ public class Geth extends AbstractExecutable {
 		return tr.get(0);
 	}
 
-	private static Trace parseTraceOutput(Scanner scanner) throws JSONException {
+	private Trace parseTraceOutput(Scanner scanner) throws JSONException {
 		// Parse into JSON. Geth produces one line per trace element.
 		ArrayList<Trace.Element> elements = new ArrayList<>();
 		while (scanner.hasNextLine()) {
@@ -229,7 +242,7 @@ public class Geth extends AbstractExecutable {
 		return new Trace(elements);
 	}
 
-	public static void parseElement(JSONObject json, List<Trace.Element> elements) throws JSONException {
+	public void parseElement(JSONObject json, List<Trace.Element> elements) throws JSONException {
 		if (json.has("error") && json.has("output")) {
 			String err = json.getString("error");
 			// Abnormal return (e.g. REVERT or exception)
@@ -242,7 +255,7 @@ public class Geth extends AbstractExecutable {
 			byte[] data = Hex.toBytes(json.getString("output"));
 			elements.add(new Trace.Returns(data));
 		} else if (json.has("pc")) {
-			Trace.Step step = parseStep(json);
+			Trace.Step step = parseStep(json, stackSize);
 			if(!json.has("error")) {
 				// Easy case: no error.
 				elements.add(step);
@@ -274,7 +287,7 @@ public class Geth extends AbstractExecutable {
 	 * @return
 	 * @throws JSONException
 	 */
-	private static Trace.Step parseStep(JSONObject json) throws JSONException {
+	private static Trace.Step parseStep(JSONObject json, int stackSize) throws JSONException {
 		int pc = json.getInt("pc");
 		int op = json.getInt("op");
 		// NOTE: Geth reports depth starting at 1, when in fact it should start at 0.  Therefore, we normalise at the point of generation here.
@@ -289,7 +302,7 @@ public class Geth extends AbstractExecutable {
 		} else {
 			storage = new HashMap<>();
 		}
-		return new Trace.Step(pc, op, depth, gas, stack, memory, storage);
+		return new Trace.Step(pc, op, depth, gas, stack.length, trimFront(stackSize,stack), memory, storage);
 	}
 
 	/**
