@@ -74,7 +74,11 @@ task gen(type: JavaExec) {
     args '-dir'
     args 'fixtures'
     args '-out'
-    args 'output'    
+    args 'output'
+    args '-excludes'
+    args 'excludes.txt'
+    args '-includes'
+    args 'includes.txt'
 }
 
 // ======================================================================
