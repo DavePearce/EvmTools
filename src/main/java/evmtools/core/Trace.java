@@ -289,7 +289,7 @@ public class Trace {
 
 		@Override
 		public String toString() {
-			String o = Hex.toHexString(data);
+			String o = Hex.toAbbreviatedHexString(data);
 			return String.format("return(%s)\n",o);
 		}
 
@@ -306,7 +306,7 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("return",Hex.toHexString(data));
+			json.put("return",Hex.toAbbreviatedHexString(data));
 			return json;
 		}
 	}
@@ -326,7 +326,7 @@ public class Trace {
 
 		@Override
 		public String toString() {
-			String o = Hex.toHexString(data);
+			String o = Hex.toAbbreviatedHexString(data);
 			return String.format("revert(%s)\n",o);
 		}
 
@@ -343,7 +343,7 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("revert",Hex.toHexString(data));
+			json.put("revert",Hex.toAbbreviatedHexString(data));
 			return json;
 		}
 	}
