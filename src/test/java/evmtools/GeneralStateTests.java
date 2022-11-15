@@ -73,7 +73,7 @@ public class GeneralStateTests {
 	/**
 	 * The directory containing the reference test test files.
 	 */
-	public final static Path FIXTURES_DIR = Path.of("fixtures");
+	public final static Path FIXTURES_DIR = Path.of("fixtures/GeneralStateTests");
 
 	@ParameterizedTest
 	@MethodSource("allTestFiles")

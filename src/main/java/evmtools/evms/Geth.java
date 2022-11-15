@@ -249,6 +249,9 @@ public class Geth extends AbstractExecutable {
 			if (err.equals("execution reverted")) {
 				byte[] data = Hex.toBytes(json.getString("output"));
 				elements.add(new Trace.Reverts(data));
+			} else {
+				Exception.Error e = parseError(err);
+				elements.add(new Trace.Exception(e));
 			}
 		} else if (json.has("output")) {
 			// Normal return (e.g. STOP or RETURNS)
@@ -327,6 +330,8 @@ public class Geth extends AbstractExecutable {
 			return Exception.Error.CALLDEPTH_EXCEEDED;
 		case "write protection":
 			return Exception.Error.WRITE_PROTECTION;
+		case "max code size exceeded":
+			return Exception.Error.CODESIZE_EXCEEDED;
 		case "unknown":
 			return Exception.Error.UNKNOWN;
 		default:
