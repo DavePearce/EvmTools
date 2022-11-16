@@ -129,7 +129,7 @@ public class Trace {
 		 */
 		public static Trace.Element fromJSON(JSONObject json) throws JSONException {
 			if (json.has("revert")) {
-				byte[] data = Hex.toBytes(json.getString("revert"));
+				byte[] data = Hex.toBytesFromAbbreviated(json.getString("revert"));
 				return new Trace.Reverts(data);
 			} else if (json.has("error")) {
 				// Parse error message into the appropriate error type. This is not super
@@ -138,7 +138,7 @@ public class Trace {
 				return new Trace.Exception(Exception.Error.valueOf(err));
 			} else if (json.has("return")) {
 				// Normal return (e.g. STOP or RETURNS)
-				byte[] data = Hex.toBytes(json.getString("return"));
+				byte[] data = Hex.toBytesFromAbbreviated(json.getString("return"));
 				return new Trace.Returns(data);
 			} else if (json.has("pc")) {
 				int pc = json.getInt("pc");
@@ -289,7 +289,7 @@ public class Trace {
 
 		@Override
 		public String toString() {
-			String o = Hex.toHexString(data);
+			String o = Hex.toAbbreviatedHexString(data);
 			return String.format("return(%s)\n",o);
 		}
 
@@ -306,7 +306,7 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("return",Hex.toHexString(data));
+			json.put("return",Hex.toAbbreviatedHexString(data));
 			return json;
 		}
 	}
@@ -326,7 +326,7 @@ public class Trace {
 
 		@Override
 		public String toString() {
-			String o = Hex.toHexString(data);
+			String o = Hex.toAbbreviatedHexString(data);
 			return String.format("revert(%s)\n",o);
 		}
 
@@ -343,7 +343,7 @@ public class Trace {
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
-			json.put("revert",Hex.toHexString(data));
+			json.put("revert",Hex.toAbbreviatedHexString(data));
 			return json;
 		}
 	}
@@ -366,11 +366,11 @@ public class Trace {
 			STACK_UNDERFLOW,
 			STACK_OVERFLOW,
 			MEMORY_OVERFLOW,
-			CODE_OVERFLOW,
 			RETURNDATA_OVERFLOW,
 			NONCE_OVERFLOW,
 			INVALID_JUMPDEST,
 			CALLDEPTH_EXCEEDED,
+			CODESIZE_EXCEEDED,
 			ACCOUNT_COLLISION,
 			WRITE_PROTECTION;
 		}

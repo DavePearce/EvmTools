@@ -249,6 +249,9 @@ public class Geth extends AbstractExecutable {
 			if (err.equals("execution reverted")) {
 				byte[] data = Hex.toBytes(json.getString("output"));
 				elements.add(new Trace.Reverts(data));
+			} else if(err.equals("max code size exceeded")) {
+				Exception.Error e = parseError(err);
+				elements.add(new Trace.Exception(e));
 			}
 		} else if (json.has("output")) {
 			// Normal return (e.g. STOP or RETURNS)
@@ -290,7 +293,8 @@ public class Geth extends AbstractExecutable {
 	private static Trace.Step parseStep(JSONObject json, int stackSize) throws JSONException {
 		int pc = json.getInt("pc");
 		int op = json.getInt("op");
-		// NOTE: Geth reports depth starting at 1, when in fact it should start at 0.  Therefore, we normalise at the point of generation here.
+		// NOTE: Geth reports depth starting at 1, when in fact it should start at 0.
+		// Therefore, we normalise at the point of generation here.
 		int depth = json.getInt("depth") - 1;
 		long gas = Hex.toBigInt(json.getString("gas")).longValueExact();
 		// Memory is not usually reported until it is actually assigned something.
@@ -327,6 +331,8 @@ public class Geth extends AbstractExecutable {
 			return Exception.Error.CALLDEPTH_EXCEEDED;
 		case "write protection":
 			return Exception.Error.WRITE_PROTECTION;
+		case "max code size exceeded":
+			return Exception.Error.CODESIZE_EXCEEDED;
 		case "unknown":
 			return Exception.Error.UNKNOWN;
 		default:
