@@ -129,7 +129,7 @@ public class Trace {
 		 */
 		public static Trace.Element fromJSON(JSONObject json) throws JSONException {
 			if (json.has("revert")) {
-				byte[] data = Hex.toBytes(json.getString("revert"));
+				byte[] data = Hex.toBytesFromAbbreviated(json.getString("revert"));
 				return new Trace.Reverts(data);
 			} else if (json.has("error")) {
 				// Parse error message into the appropriate error type. This is not super
@@ -138,7 +138,7 @@ public class Trace {
 				return new Trace.Exception(Exception.Error.valueOf(err));
 			} else if (json.has("return")) {
 				// Normal return (e.g. STOP or RETURNS)
-				byte[] data = Hex.toBytes(json.getString("return"));
+				byte[] data = Hex.toBytesFromAbbreviated(json.getString("return"));
 				return new Trace.Returns(data);
 			} else if (json.has("pc")) {
 				int pc = json.getInt("pc");
