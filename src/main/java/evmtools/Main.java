@@ -134,6 +134,7 @@ public class Main {
 			new Option("abbreviate", true, "Enable/Disable hex string abbreviation (default is enabled)"),
 			new Option("excludes", true, "Don't include tests matching globs in this file."),
 			new Option("includes", true, "Only include tests matching globs in this file."),
+			new Option("incremental", false, "Prohibits regeneration trace data when it already exists."),
 	};
 
 	public static CommandLine parseCommandLine(String[] args) {
@@ -187,6 +188,8 @@ public class Main {
 					int len = run(cmd, dir, f);
 					if(len >= ONE_MB) {
 						System.out.println(GREEN + " [" + len/ONE_MB + "mb]");
+					} else if(len < 0) {
+						System.out.println(YELLOW + " [skipped]");
 					} else {
 						System.out.println();
 					}
@@ -206,20 +209,24 @@ public class Main {
 
 	public static int run(CommandLine cmd, Path dir, Path filename) throws IOException, JSONException {
 		OutFile out = determineOutFile(cmd, filename, cmd.hasOption("gzip"));
-		Main m = new Main(dir.resolve(filename), out);
-		if (cmd.hasOption("prettify")) {
-			m = m.prettify(true);
+		if(cmd.hasOption("incremental") && out.exists()) {
+			return -1;
+		} else {
+			Main m = new Main(dir.resolve(filename), out);
+			if (cmd.hasOption("prettify")) {
+				m = m.prettify(true);
+			}
+			if (cmd.hasOption("abbreviate")) {
+				m = m.abbreviate(Boolean.parseBoolean(cmd.getOptionValue("abbreviate")));
+			}
+			if (cmd.hasOption("fork")) {
+				String fork = cmd.getOptionValue("fork");
+				m.filter((f, i) -> f.equals(fork));
+			}
+			int len = m.run();
+			out.close();
+			return len;
 		}
-		if (cmd.hasOption("abbreviate")) {
-			m = m.abbreviate(Boolean.parseBoolean(cmd.getOptionValue("abbreviate")));
-		}
-		if (cmd.hasOption("fork")) {
-			String fork = cmd.getOptionValue("fork");
-			m.filter((f, i) -> f.equals(fork));
-		}
-		int len = m.run();
-		out.close();
-		return len;
 	}
 
 	public static OutFile determineOutFile(CommandLine cmd, Path filename, boolean gzip) {

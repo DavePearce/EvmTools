@@ -35,7 +35,7 @@ repositories {
 }
 
 group = 'org.whiley'
-version = '0.3.24'
+version = '0.3.25'
 
 java {
     withJavadocJar()
@@ -69,6 +69,7 @@ task gen(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'evmtools.Main'
     // arguments to pass to the application
+    args '-incremental'
     args '-fork'
     args 'Berlin'
     args '-dir'

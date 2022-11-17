@@ -27,6 +27,8 @@ public interface OutFile {
 
 	public void close() throws IOException;
 
+	public boolean exists();
+
 	//
 	public static class PrintOutFile implements OutFile {
 		private final PrintStream pout;
@@ -48,6 +50,11 @@ public interface OutFile {
 		@Override
 		public void close() {
 			pout.close();
+		}
+
+		@Override
+		public boolean exists() {
+			return false;
 		}
 	}
 
@@ -78,6 +85,12 @@ public interface OutFile {
 			fout.flush();
 			pout.close();
 			fout.close();
+		}
+
+
+		@Override
+		public boolean exists() {
+			return file.exists();
 		}
 
 		private void init() throws IOException {
