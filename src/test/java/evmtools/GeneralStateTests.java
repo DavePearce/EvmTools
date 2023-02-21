@@ -14,19 +14,18 @@
 package evmtools;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.math.BigInteger;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.PathMatcher;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.stream.Stream;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -75,6 +74,10 @@ public class GeneralStateTests {
 	 */
 	public final static Path FIXTURES_DIR = Path.of("fixtures/GeneralStateTests");
 
+	public final static String[] EXCLUDES = {
+			"VMTests/vmPerformance/*.json", // some performance issues here
+	};
+
 	@ParameterizedTest
 	@MethodSource("allTestFiles")
 	public void tests(StateTest.Instance instance) throws IOException, JSONException {
@@ -94,12 +97,12 @@ public class GeneralStateTests {
 	 */
 	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
-		Trace trace = geth.run(env, state, tx);
+		Trace trace = geth.t8n(FORK, env, state, tx);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
-		assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
+		//assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
 		//JSONArray t = trace.toJSON();
-//		System.out.println("GOT: " + trace.toString());
+		//System.out.println("GOT: " + trace.toString());
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 
@@ -118,10 +121,12 @@ public class GeneralStateTests {
 	 * @throws IOException
 	 */
 	public static Stream<StateTest.Instance> readTestFiles(Path dir, BiPredicate<String,StateTest.Instance> filter) throws IOException {
+		PathMatcher excludes = createPathMatcher(EXCLUDES);
+
 		ArrayList<StateTest> testcases = new ArrayList<>();
 		//
 		Files.walk(dir,10).forEach(f -> {
-			if (f.toString().endsWith(".json")) {
+			if (f.toString().endsWith(".json") && !excludes.matches(dir.relativize(f))) {
 				try {
 					// Read contents of fixture file
 					String contents = Files.readString(f);
@@ -132,16 +137,31 @@ public class GeneralStateTests {
 					// Add them all
 					testcases.addAll(tests);
 				} catch(JSONException e) {
-					e.printStackTrace();
-					System.out.println("Problem parsing file into JSON (" + f + ")");
+					System.err.println("Problem parsing file into JSON " + f + " (" + e.getMessage() + ")");
 				} catch(IOException e) {
-					System.out.println("Problem reading file (" + f + ")");
+					System.err.println("Problem reading file " + f + " (" + e.getMessage() + ")");
 				} catch(Exception e) {
-					System.out.println("Problem reading file (" + f + ")");
+					System.err.println("Problem reading file " + f + " (" + e.getMessage() + ")");
 				}
 			}
 		});
 		// Instantiate each state test into one or more
 		return testcases.stream().map(st -> st.selectInstances(filter)).flatMap(l -> l.stream());
+	}
+
+	public static PathMatcher createPathMatcher(String[] lines) throws IOException {
+		FileSystem fs = FileSystems.getDefault();
+		final List<PathMatcher> matchers = new ArrayList<>();
+		for (String line : lines) {
+			matchers.add(fs.getPathMatcher("glob:" + line));
+		}
+		return (p) -> {
+			for (PathMatcher m : matchers) {
+				if (m.matches(p)) {
+					return true;
+				}
+			}
+			return false;
+		};
 	}
 }

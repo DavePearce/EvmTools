@@ -83,7 +83,7 @@ public class Main {
 		return jsonStr.length();
 	}
 
-	public JSONObject convertState2TraceTest(JSONObject stfile) throws JSONException {
+	public JSONObject convertState2TraceTest(JSONObject stfile) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(timeout * 1000).setStackSize(stackSize);
 		JSONObject json = new JSONObject();
 		// Convert
@@ -96,7 +96,7 @@ public class Main {
 					if (filter.test(fork, inst)) {
 						String id = inst.getID();
 						Transaction tx = inst.instantiate();
-						Trace t = geth.run(inst.getEnvironment(), state, tx);
+						Trace t = geth.t8n(fork, inst.getEnvironment(), state, tx);
 						// Test can convert transaction to JSON, and then back again.
 						instances.add(new TraceTest.Instance(id, tx, t, inst.expect));
 					}

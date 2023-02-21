@@ -24,7 +24,7 @@ import org.json.JSONObject;
 
 import evmtools.util.Hex;
 
-public class Transaction {
+public abstract class Transaction {
 	public enum Expectation {
 		/**
 		 * Indicates test ran to completion, possibly producing output data.
@@ -60,50 +60,113 @@ public class Transaction {
 	/**
 	 * Address of the sender making this transaction.
 	 */
-	public final BigInteger sender;
+	private final BigInteger sender;
 	/**
 	 * Secret key of sender (this is needed to sign the transaction later on).
 	 */
-	public final BigInteger secretKey;
+	private final BigInteger secretKey;
 	/**
 	 * Address of account being called. If this is <code>null</code>, then
 	 * transaction is a contract creation.
 	 */
-	public final BigInteger to;
+	private final BigInteger to;
+
+
+	private final BigInteger nonce;
 	/**
 	 * Maximum amount of gas to expend trying to complete the transaction.
 	 */
-	public final BigInteger gasLimit;
-	/**
-	 * Price per unit of Gas (in Wei).
-	 */
-	public final BigInteger gasPrice;
-
-	public final BigInteger nonce;
+	private BigInteger gasLimit;
 	/**
 	 * Funds being transferred (in Wei)
 	 */
-	public final BigInteger value;
+	private BigInteger value;
 	/**
 	 * Call data provided for the contract call (e.g. which typically follows the
 	 * Solidity ABI).
 	 */
-	public final byte[] data;
+	private byte[] data;
 
 	/**
 	 * The expected outcome from executing this transaction (e.g. normal execution,
 	 * revert, etc).
 	 */
-	public Transaction(BigInteger sender, BigInteger secretKey, BigInteger to, BigInteger gasLimit, BigInteger gasPrice, BigInteger nonce,
-			BigInteger value, byte[] data) {
+	public Transaction(BigInteger sender, BigInteger secretKey, BigInteger to, BigInteger nonce,
+			BigInteger gasLimit, BigInteger value, byte[] data) {
 		this.sender = sender;
 		this.secretKey = secretKey;
 		this.to = to;
-		this.gasLimit = gasLimit;
-		this.gasPrice = gasPrice;
 		this.nonce = nonce;
+		this.gasLimit = gasLimit;
 		this.value = value;
 		this.data = data;
+	}
+
+	/**
+	 * Copy Constructor
+	 * @param tx
+	 */
+	public Transaction(Transaction tx) {
+		this.sender = tx.sender;
+		this.secretKey = tx.secretKey;
+		this.to = tx.to;
+		this.nonce = tx.nonce;
+		this.gasLimit = tx.gasLimit;
+		this.value = tx.value;
+		this.data = tx.data;
+	}
+
+	public BigInteger sender() {
+		return sender;
+	}
+
+	public BigInteger to() {
+		return to;
+	}
+
+	public BigInteger gasLimit() {
+		return gasLimit;
+	}
+
+	public BigInteger value() {
+		return value;
+	}
+
+	public byte[] data() {
+		return data;
+	}
+
+	/**
+	 * Set a specific gas limit for this transaction.
+	 *
+	 * @param gasLimit
+	 * @return
+	 */
+	public Transaction setGasLimit(BigInteger gasLimit) {
+		this.gasLimit = gasLimit;
+		return this;
+	}
+
+	/**
+	 * Set a specific value for this transaction.
+	 *
+	 * @param value
+	 * @return
+	 */
+	public Transaction setValue(BigInteger value) {
+		this.value = value;
+		return this;
+	}
+
+	/**
+	 * Set specific call data for this transaction.
+	 *
+	 * @param value
+	 * @return
+	 */
+	public Transaction setData(byte[] data) {
+		this.data = data;
+		return this;
 	}
 
 	/**
@@ -124,19 +187,21 @@ public class Transaction {
 	}
 
 	@Override
-	public boolean equals(Object o) {
-		if(o instanceof Transaction) {
-			Transaction t = (Transaction) o;
-			return sender.equals(t.sender) && Objects.equals(to,t.to) && gasLimit.equals(t.gasLimit)
-					&& gasPrice.equals(t.gasPrice) && nonce.equals(t.nonce) && value.equals(t.value)
-					&& Arrays.equals(data, t.data);
-		}
-		return false;
-	}
+	public abstract Transaction clone();
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(sender, to, gasLimit, gasPrice, nonce, value) ^ Arrays.hashCode(data);
+		return Objects.hash(sender, to, gasLimit, nonce, value) ^ Arrays.hashCode(data);
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o instanceof Transaction) {
+			Transaction t = (Transaction) o;
+			return sender.equals(t.sender) && Objects.equals(to, t.to) && nonce.equals(t.nonce) && value.equals(t.value)
+					&& Arrays.equals(data, t.data) && gasLimit.equals(t.gasLimit);
+		}
+		return false;
 	}
 
 	/**
@@ -147,32 +212,36 @@ public class Transaction {
 	 */
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
-		json.put("sender",Hex.toHexString(sender));
+		json.put("sender",Hex.toHexString(sender,40));
 		json.put("secretKey",Hex.toHexString(secretKey));
-		if(to == null) {
-			json.put("to","");
-		} else {
-			json.put("to",Hex.toHexString(to));
+		if(to != null) {
+			json.put("to",Hex.toHexString(to,40));
 		}
 		json.put("gasLimit",Hex.toHexString(gasLimit));
-		json.put("gasPrice",Hex.toHexString(gasPrice));
 		json.put("nonce",Hex.toHexString(nonce));
 		json.put("value",Hex.toHexString(value));
 		json.put("input",Hex.toHexString(data));
+		// Done
 		return json;
 	}
+
 
 	public static Transaction fromJSON(JSONObject json) throws JSONException {
 		BigInteger sender = Hex.toBigInt(json.getString("sender"));
 		BigInteger secret = Hex.toBigInt(json.getString("secretKey"));
-		String _to = json.getString("to");
+		String _to = json.optString("to","");
 		BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
 		BigInteger gasLimit = Hex.toBigInt(json.getString("gasLimit"));
-		BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
 		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 		BigInteger value = Hex.toBigInt(json.getString("value"));
 		byte[] data = Hex.toBytes(json.getString("input"));
-		return new Transaction(sender, secret, to, gasLimit, gasPrice, nonce, value, data);
+		// Decide what type of transaction we have
+		if(json.length() <= 8 && json.has("gasPrice")) {
+			BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
+			return new LegacyTransaction(sender, secret, to, nonce, gasLimit, value, data, gasPrice);
+		} else {
+			throw new IllegalArgumentException("unsupported transaction type (" + json + ")");
+		}
 	}
 
 	/**
@@ -191,11 +260,10 @@ public class Transaction {
 		private final BigInteger[] values;
 		private final byte[][] datas;
 
-		public Template(BigInteger sender, BigInteger secretKey,BigInteger to, BigInteger[] gasLimits, BigInteger gasPrice, BigInteger nonce,
-				BigInteger[] values, byte[][] datas) {
+		public Template(Transaction template, BigInteger[] gasLimits, BigInteger[] values, byte[][] datas) {
 			// Create the "templated" transaction which has empty slots for the
 			// parameterised values.
-			this.template = new Transaction(sender,secretKey,to,null,gasPrice,nonce,null,null);
+			this.template = template;
 			this.gasLimits = gasLimits;
 			this.values = values;
 			this.datas = datas;
@@ -211,11 +279,10 @@ public class Transaction {
 		 * @return
 		 */
 		public Transaction instantiate(Map<String, Integer> indices) {
-			int g = indices.get("gas");
-			int d = indices.get("data");
-			int v = indices.get("value");
-			return new Transaction(template.sender, template.secretKey, template.to, gasLimits[g], template.gasPrice, template.nonce,
-					values[v], datas[d]);
+			BigInteger g = gasLimits[indices.get("gas")];
+			BigInteger v = values[indices.get("value")];
+			byte[] d = datas[indices.get("data")];
+			return template.clone().setGasLimit(g).setValue(v).setData(d);
 		}
 
 		/**
@@ -226,19 +293,22 @@ public class Transaction {
 		 * @return
 		 */
 		public static Template fromJSON(JSONObject json) throws JSONException {
-			String _to = json.getString("to");
+			String _to = json.optString("to","");
 			BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
 			BigInteger sender = Hex.toBigInt(json.getString("sender"));
 			BigInteger secretKey = Hex.toBigInt(json.getString("secretKey"));
-			// NOTE: for reasons unknown some of the tests don't have a gasPrice field. For
-			// now I have just set it to zero if its missing. A better solution might be to
-			// use a default.
-			BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice","0x0"));
 			BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 			BigInteger[] gasLimits = parseValueArray(json.getJSONArray("gasLimit"));
 			BigInteger[] values = parseValueArray(json.getJSONArray("value"));
 			byte[][] datas = parseDataArray(json.getJSONArray("data"));
-			return new Template(sender, secretKey, to, gasLimits, gasPrice, nonce, values, datas);
+			//
+			if (json.length() <= 8 && json.has("gasPrice")) {
+				BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice", "0x0"));
+				LegacyTransaction tx = new LegacyTransaction(sender, secretKey, to, nonce, null, null, null, gasPrice);
+				return new Template(tx, gasLimits, values, datas);
+			} else {
+				throw new IllegalArgumentException("unsupported transaction template");
+			}
 		}
 
 	}

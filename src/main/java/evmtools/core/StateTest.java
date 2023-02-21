@@ -214,11 +214,17 @@ public class StateTest {
 		public final String fork;
 		public final Map<String, Integer> indexes;
 		public final Transaction.Expectation expect;
+		public final byte[] hash; // hash of the transaction
+		public final byte[] txBytes; // transaction bytes (in rlp)
+		public final byte[] logs; // ???
 
-		public Instance(String fork, Map<String, Integer> indices, Transaction.Expectation expect) {
+		public Instance(String fork, Map<String, Integer> indices, Transaction.Expectation expect, byte[] hash, byte[] txBytes, byte[] logs) {
 			this.fork = fork;
 			this.indexes = Collections.unmodifiableMap(indices);
 			this.expect = expect;
+			this.hash = hash;
+			this.txBytes = txBytes;
+			this.logs = logs;
 		}
 
 		public String getID() {
@@ -300,7 +306,10 @@ public class StateTest {
 			} else {
 				kind = Transaction.Expectation.OK;
 			}
-			return new Instance(fork, map, kind);
+			byte[] hash = Hex.toBytes(json.getString("hash"));
+			byte[] txBytes = Hex.toBytes(json.getString("txbytes"));
+			byte[] logs = Hex.toBytes(json.getString("logs"));
+			return new Instance(fork, map, kind, hash, txBytes, logs);
 		}
 	}
 }

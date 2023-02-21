@@ -57,6 +57,12 @@ public class Geth extends AbstractExecutable {
 
 	private int stackSize = 10;
 
+	/**
+	 * Set the timeout (in milliseconds)
+	 *
+	 * @param timeout
+	 * @return
+	 */
 	public Geth setTimeout(int timeout) {
 		this.timeout = timeout;
 		return this;
@@ -91,65 +97,6 @@ public class Geth extends AbstractExecutable {
 		}
 	}
 
-	/**
-	 * Execute a given transaction using the EVM.
-	 *
-	 * @param tx
-	 * @return
-	 */
-	public Trace run(Environment env, WorldState pre, Transaction tx) throws JSONException {
-		String preStateFile = null;
-		try {
-			preStateFile = createPreStateFile(env,pre,tx);
-			// Build up the command
-			ArrayList<String> command = new ArrayList<>();
-			command.add(cmd);
-			command.add("--json");
-			command.add("--input");
-			command.add(Hex.toHexString(tx.data));
-			command.add("--nomemory=false");
-			command.add("--nostorage=false");
-			command.add("--prestate");
-			command.add(preStateFile);
-			command.add("--value");
-			command.add(Hex.toHexString(tx.value));
-			command.add("--gas");
-			command.add(Hex.toHexString(tx.gasLimit));
-			command.add("--price");
-			command.add(Hex.toHexString(tx.gasPrice));
-			command.add("--sender");
-			command.add(Hex.toHexString(tx.sender));
-			if(tx.to != null) {
-				command.add("--receiver");
-				command.add(Hex.toHexString(tx.to));
-				command.add("--code");
-				command.add(Hex.toHexString(tx.getCode(pre)));
-			} else {
-				command.add("--create");
-			}
-			command.add("run");
-			//
-			String out = exec(command);
-			//
-			if(out != null) {
-				return parseTraceOutput(new Scanner(out));
-			} else {
-				// Geth failed for some reason, so dump the input to help debugging.
-				//System.out.println(pre.toJSON().toString(2));
-				return null;
-			}
-		} catch (IOException e) {
-			return null;
-		} catch (InterruptedException e) {
-			return null;
-		} finally {
-			if (preStateFile != null) {
-				// delete the temporary file
-				new File(preStateFile).delete();
-			}
-		}
-	}
-
 	public Trace t8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
 		Path tempDir = null;
 		String envFile = null;
@@ -168,6 +115,7 @@ public class Geth extends AbstractExecutable {
 			command.add(fork);
 			// Trace info
 			command.add("--trace");
+			command.add("--trace.memory"); // ensures memory included in trace output
 			// Input
 			command.add("--input.env");
 			command.add(envFile);
@@ -190,8 +138,6 @@ public class Geth extends AbstractExecutable {
 				// Geth failed for some reason
 				throw new RuntimeException();
 			}
-		} catch (IOException e) {
-			return null;
 		} catch (InterruptedException e) {
 			return null;
 		} finally {
@@ -366,7 +312,6 @@ public class Geth extends AbstractExecutable {
 			throws JSONException, IOException, InterruptedException {
 		JSONObject json = pre.toJSON();
 		byte[] bytes = json.toString(2).getBytes();
-		System.out.println("ALLOC: " + json.toString(2));
 		return createTemporaryFile(dir, "alloc.json", bytes);
 	}
 
@@ -374,20 +319,22 @@ public class Geth extends AbstractExecutable {
 			throws JSONException, IOException, InterruptedException {
 		JSONObject json = env.toJSON();
 		byte[] bytes = json.toString(2).getBytes();
-		System.out.println("ENV: " + json.toString(2));
 		return createTemporaryFile(dir, "env.json", bytes);
 	}
 
 	private static String createTransactionsFile(Path dir, Transaction tx)
 			throws JSONException, IOException, InterruptedException {
 		JSONObject obj = tx.toJSON();
+		// NOTE: for reasons unknown, Geth calls it "gas" not "gasLimit". Perhaps this
+		// is historical.
+		obj.put("gas",obj.get("gasLimit"));
+		obj.remove("gasLimit");
+		obj.remove("sender"); // unused, as recoverable from signing info.
 		obj.put("v","");
 		obj.put("r","");
 		obj.put("s","");
 		JSONArray json = new JSONArray();
 		json.put(0,obj);
-		//
-		System.out.println("TX: " + json.toString(2));
 		//
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile(dir, "txs.json", bytes);
@@ -396,45 +343,6 @@ public class Geth extends AbstractExecutable {
 	private static Path createTemporaryDirectory() throws IOException {
 		return Files.createTempDirectory("geth");
 	}
-
-	private static String createPreStateFile(Environment env, WorldState pre, Transaction tx)
-			throws JSONException, IOException, InterruptedException {
-		JSONObject json = new JSONObject();
-		json.put("alloc",pre.toJSON());
-		json.put("env", env.toJSON());
-		json.put("coinbase", Hex.toHexString(env.currentCoinbase));
-		json.put("difficulty", Hex.toHexString(env.currentDifficulty));
-		// FIXME: block number is hardcoded because we cannot create a gensis block with
-		// a number > 0.
-		//json.put("number", Hex.toHexString(env.currentNumber));
-		json.put("number", "0x0");
-		json.put("timestamp", Hex.toHexString(env.currentTimestamp));
-		// FIXME: commented out because it appears (for reasons unknown) to affect the
-		// amount of gas reported by the GAS bytecode.
-		json.put("gasLimit", Hex.toHexString(env.currentGasLimit));
-		byte[] bytes = json.toString(2).getBytes();
-		return createTemporaryFile("geth_prestate", ".json", bytes);
-	}
-
-	/**
-     * Write a given string into a temporary file which can then be checked by boogie.
-     *
-     * @param contents
-     * @return
-     */
-    private static String createTemporaryFile(String prefix, String suffix, byte[] contents)
-            throws IOException, InterruptedException {
-        // Create new file
-        File f = File.createTempFile(prefix, suffix);
-        // Open for writing
-        FileOutputStream fout = new FileOutputStream(f);
-        // Write contents to file
-        fout.write(contents);
-        // Done creating file
-        fout.close();
-        //
-        return f.getAbsolutePath();
-    }
 
 	/**
      * Write a given string into a temporary file which can then be checked by boogie.
