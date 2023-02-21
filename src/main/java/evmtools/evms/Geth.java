@@ -150,7 +150,7 @@ public class Geth extends AbstractExecutable {
 		}
 	}
 
-	public Trace runt8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
+	public Trace t8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
 		Path tempDir = null;
 		String envFile = null;
 		String allocFile = null;
@@ -168,9 +168,6 @@ public class Geth extends AbstractExecutable {
 			command.add(fork);
 			// Trace info
 			command.add("--trace");
-			//command.add("--trace.memory");
-//			command.add("--trace.nostorage");
-//			command.add("false");
 			// Input
 			command.add("--input.env");
 			command.add(envFile);
@@ -180,8 +177,7 @@ public class Geth extends AbstractExecutable {
 			command.add(txsFile);
 			command.add("--output.basedir");
 			command.add(tempDir.toString());
-//			command.add("--output.result");
-//			command.add("stdout");
+			// Output
 			command.add("--output.alloc");
 			command.add("alloc-out.json");
 			//
@@ -191,9 +187,8 @@ public class Geth extends AbstractExecutable {
 				// Parse into JSON. Geth produces one line per trace element.
 				return readTraceFile(tempDir);
 			} else {
-				// Geth failed for some reason, so dump the input to help debugging.
-				//System.out.println(pre.toJSON().toString(2));
-				return null;
+				// Geth failed for some reason
+				throw new RuntimeException();
 			}
 		} catch (IOException e) {
 			return null;
@@ -371,6 +366,7 @@ public class Geth extends AbstractExecutable {
 			throws JSONException, IOException, InterruptedException {
 		JSONObject json = pre.toJSON();
 		byte[] bytes = json.toString(2).getBytes();
+		System.out.println("ALLOC: " + json.toString(2));
 		return createTemporaryFile(dir, "alloc.json", bytes);
 	}
 
@@ -378,6 +374,7 @@ public class Geth extends AbstractExecutable {
 			throws JSONException, IOException, InterruptedException {
 		JSONObject json = env.toJSON();
 		byte[] bytes = json.toString(2).getBytes();
+		System.out.println("ENV: " + json.toString(2));
 		return createTemporaryFile(dir, "env.json", bytes);
 	}
 
@@ -389,6 +386,9 @@ public class Geth extends AbstractExecutable {
 		obj.put("s","");
 		JSONArray json = new JSONArray();
 		json.put(0,obj);
+		//
+		System.out.println("TX: " + json.toString(2));
+		//
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile(dir, "txs.json", bytes);
 	}

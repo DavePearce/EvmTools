@@ -57,7 +57,18 @@ public class Transaction {
 		FAILURE
 	}
 
+	/**
+	 * Address of the sender making this transaction.
+	 */
 	public final BigInteger sender;
+	/**
+	 * Secret key of sender (this is needed to sign the transaction later on).
+	 */
+	public final BigInteger secretKey;
+	/**
+	 * Address of account being called. If this is <code>null</code>, then
+	 * transaction is a contract creation.
+	 */
 	public final BigInteger to;
 	/**
 	 * Maximum amount of gas to expend trying to complete the transaction.
@@ -83,9 +94,10 @@ public class Transaction {
 	 * The expected outcome from executing this transaction (e.g. normal execution,
 	 * revert, etc).
 	 */
-	public Transaction(BigInteger sender, BigInteger to, BigInteger gasLimit, BigInteger gasPrice, BigInteger nonce,
+	public Transaction(BigInteger sender, BigInteger secretKey, BigInteger to, BigInteger gasLimit, BigInteger gasPrice, BigInteger nonce,
 			BigInteger value, byte[] data) {
 		this.sender = sender;
+		this.secretKey = secretKey;
 		this.to = to;
 		this.gasLimit = gasLimit;
 		this.gasPrice = gasPrice;
@@ -136,6 +148,7 @@ public class Transaction {
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("sender",Hex.toHexString(sender));
+		json.put("secretKey",Hex.toHexString(secretKey));
 		if(to == null) {
 			json.put("to","");
 		} else {
@@ -151,6 +164,7 @@ public class Transaction {
 
 	public static Transaction fromJSON(JSONObject json) throws JSONException {
 		BigInteger sender = Hex.toBigInt(json.getString("sender"));
+		BigInteger secret = Hex.toBigInt(json.getString("secretKey"));
 		String _to = json.getString("to");
 		BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
 		BigInteger gasLimit = Hex.toBigInt(json.getString("gasLimit"));
@@ -158,7 +172,7 @@ public class Transaction {
 		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 		BigInteger value = Hex.toBigInt(json.getString("value"));
 		byte[] data = Hex.toBytes(json.getString("input"));
-		return new Transaction(sender, to, gasLimit, gasPrice, nonce, value, data);
+		return new Transaction(sender, secret, to, gasLimit, gasPrice, nonce, value, data);
 	}
 
 	/**
@@ -177,11 +191,11 @@ public class Transaction {
 		private final BigInteger[] values;
 		private final byte[][] datas;
 
-		public Template(BigInteger sender, BigInteger to, BigInteger[] gasLimits, BigInteger gasPrice, BigInteger nonce,
+		public Template(BigInteger sender, BigInteger secretKey,BigInteger to, BigInteger[] gasLimits, BigInteger gasPrice, BigInteger nonce,
 				BigInteger[] values, byte[][] datas) {
 			// Create the "templated" transaction which has empty slots for the
 			// parameterised values.
-			this.template = new Transaction(sender,to,null,gasPrice,nonce,null,null);
+			this.template = new Transaction(sender,secretKey,to,null,gasPrice,nonce,null,null);
 			this.gasLimits = gasLimits;
 			this.values = values;
 			this.datas = datas;
@@ -200,7 +214,7 @@ public class Transaction {
 			int g = indices.get("gas");
 			int d = indices.get("data");
 			int v = indices.get("value");
-			return new Transaction(template.sender, template.to, gasLimits[g], template.gasPrice, template.nonce,
+			return new Transaction(template.sender, template.secretKey, template.to, gasLimits[g], template.gasPrice, template.nonce,
 					values[v], datas[d]);
 		}
 
@@ -215,6 +229,7 @@ public class Transaction {
 			String _to = json.getString("to");
 			BigInteger to = _to.isEmpty() ? null : Hex.toBigInt(_to);
 			BigInteger sender = Hex.toBigInt(json.getString("sender"));
+			BigInteger secretKey = Hex.toBigInt(json.getString("secretKey"));
 			// NOTE: for reasons unknown some of the tests don't have a gasPrice field. For
 			// now I have just set it to zero if its missing. A better solution might be to
 			// use a default.
@@ -223,7 +238,7 @@ public class Transaction {
 			BigInteger[] gasLimits = parseValueArray(json.getJSONArray("gasLimit"));
 			BigInteger[] values = parseValueArray(json.getJSONArray("value"));
 			byte[][] datas = parseDataArray(json.getJSONArray("data"));
-			return new Template(sender, to, gasLimits, gasPrice, nonce, values, datas);
+			return new Template(sender, secretKey, to, gasLimits, gasPrice, nonce, values, datas);
 		}
 
 	}
