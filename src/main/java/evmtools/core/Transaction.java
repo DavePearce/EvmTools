@@ -39,7 +39,7 @@ public abstract class Transaction {
 		 */
 		OutOfGas,
 		/**
-		 * Transaction type not supported (?).
+		 * Transaction type not supported.
 		 */
 		TypeNotSupported,
 		/**
@@ -60,19 +60,19 @@ public abstract class Transaction {
 	/**
 	 * Address of the sender making this transaction.
 	 */
-	private final BigInteger sender;
+	private BigInteger sender;
 	/**
 	 * Secret key of sender (this is needed to sign the transaction later on).
 	 */
-	private final BigInteger secretKey;
+	private BigInteger secretKey;
 	/**
 	 * Address of account being called. If this is <code>null</code>, then
 	 * transaction is a contract creation.
 	 */
-	private final BigInteger to;
+	private BigInteger to;
 
 
-	private final BigInteger nonce;
+	private BigInteger nonce;
 	/**
 	 * Maximum amount of gas to expend trying to complete the transaction.
 	 */
@@ -134,6 +134,21 @@ public abstract class Transaction {
 
 	public byte[] data() {
 		return data;
+	}
+
+	public Transaction setSender(BigInteger sender) {
+		this.sender = sender;
+		return this;
+	}
+
+	/**
+	 * Set a specific gas limit for this transaction.
+	 *
+	 * @param gasLimit
+	 * @return
+	 */
+	public Transaction setGasLimit(long gasLimit) {
+		return setGasLimit(BigInteger.valueOf(gasLimit));
 	}
 
 	/**
