@@ -25,11 +25,16 @@ import org.json.JSONObject;
 import evmtools.util.Hex;
 
 public abstract class Transaction {
-	public enum Expectation {
-		/**
-		 * Indicates test ran to completion, possibly producing output data.
-		 */
-		OK,
+	/**
+	 * A transaction exception arises when a transaction is rejected before any
+	 * execution can occur. There are a small number of reasons why this can happen.
+	 * For example, the sender has insufficient funds for the gas limit they have
+	 * requested.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	public enum Exception {
 		/**
 		 * Indicates not enough gas to start with!
 		 */
@@ -47,14 +52,17 @@ public abstract class Transaction {
 		 */
 		NonceHasMaxValue,
 		/**
-		 * Indicates test ran but caused a revert.
+		 * Sender of transaction is not an End User Account.
 		 */
-		REVERT,
+		SenderNotEOA,
 		/**
-		 * Indicates an outcome was not generated due to some kind of internal issue
-		 * (e.g. fork not supported, transaction type not supported, etc).
+		 * ?
 		 */
-		FAILURE
+		FeeCapLessThanBlocks,
+		/**
+		 * Insufficient funds for transaction.
+		 */
+		NoFunds,
 	}
 
 	/**
@@ -228,7 +236,7 @@ public abstract class Transaction {
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("sender",Hex.toHexString(sender,40));
-		json.put("secretKey",Hex.toHexString(secretKey));
+		json.put("secretKey",Hex.toHexString(secretKey,64));
 		if(to != null) {
 			json.put("to",Hex.toHexString(to,40));
 		}

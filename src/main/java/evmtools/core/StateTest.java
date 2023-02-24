@@ -213,15 +213,15 @@ public class StateTest {
 		private StateTest parent;
 		public final String fork;
 		public final Map<String, Integer> indexes;
-		public final Transaction.Expectation expect;
+		public final Transaction.Exception exception;
 		public final byte[] hash; // hash of the transaction
 		public final byte[] txBytes; // transaction bytes (in rlp)
 		public final byte[] logs; // ???
 
-		public Instance(String fork, Map<String, Integer> indices, Transaction.Expectation expect, byte[] hash, byte[] txBytes, byte[] logs) {
+		public Instance(String fork, Map<String, Integer> indices, Transaction.Exception exception, byte[] hash, byte[] txBytes, byte[] logs) {
 			this.fork = fork;
 			this.indexes = Collections.unmodifiableMap(indices);
-			this.expect = expect;
+			this.exception = exception;
 			this.hash = hash;
 			this.txBytes = txBytes;
 			this.logs = logs;
@@ -280,31 +280,43 @@ public class StateTest {
 			map.put("data", is.getInt("data"));
 			map.put("gas", is.getInt("gas"));
 			map.put("value", is.getInt("value"));
-			Transaction.Expectation kind;
+			Transaction.Exception kind;
 			if (json.has("expectException")) {
 				String except = json.getString("expectException");
 				switch (except) {
 				case "TR_IntrinsicGas": {
-					kind = Transaction.Expectation.IntrinsicGas;
+					kind = Transaction.Exception.IntrinsicGas;
 					break;
 				}
 				case "TR_GasLimitReached": {
-					kind = Transaction.Expectation.OutOfGas;
+					kind = Transaction.Exception.OutOfGas;
 					break;
 				}
 				case "TR_TypeNotSupported": {
-					kind = Transaction.Expectation.TypeNotSupported;
+					kind = Transaction.Exception.TypeNotSupported;
 					break;
 				}
 				case "TR_NonceHasMaxValue": {
-					kind = Transaction.Expectation.NonceHasMaxValue;
+					kind = Transaction.Exception.NonceHasMaxValue;
+					break;
+				}
+				case "TR_NoFunds": {
+					kind = Transaction.Exception.NoFunds;
+					break;
+				}
+				case "TR_SenderNotEOA": {
+					kind = Transaction.Exception.SenderNotEOA;
+					break;
+				}
+				case "TR_FeeCapLessThanBlocks": {
+					kind = Transaction.Exception.FeeCapLessThanBlocks;
 					break;
 				}
 				default:
 					throw new RuntimeException("unrecognised exception: " + except);
 				}
 			} else {
-				kind = Transaction.Expectation.OK;
+				kind = null;
 			}
 			byte[] hash = Hex.toBytes(json.getString("hash"));
 			byte[] txBytes = Hex.toBytes(json.getString("txbytes"));

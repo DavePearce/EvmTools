@@ -23,7 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtools.core.Transaction.Expectation;
+import evmtools.core.Transaction.Exception;
 
 public class TraceTest {
 	/**
@@ -143,13 +143,13 @@ public class TraceTest {
 		private final String id;
 		private final Transaction transaction;
 		private final Trace trace;
-		private final Transaction.Expectation expectation;
+		private final Transaction.Exception exception;
 
-		public Instance(String id, Transaction transaction, Trace trace, Transaction.Expectation expectation) {
+		public Instance(String id, Transaction transaction, Trace trace, Transaction.Exception exception) {
 			this.id = id;
 			this.transaction = transaction;
 			this.trace = trace;
-			this.expectation = expectation;
+			this.exception = exception;
 		}
 
 		public Environment getEnvironment() {
@@ -168,8 +168,8 @@ public class TraceTest {
 			return trace;
 		}
 
-		public Transaction.Expectation getExpectation() {
-			return expectation;
+		public Transaction.Exception getException() {
+			return exception;
 		}
 
 		@Override
@@ -189,7 +189,9 @@ public class TraceTest {
 			json.put("id", id);
 			json.put("transaction", transaction.toJSON());
 			json.put("trace", trace.toJSON(abbreviate));
-			json.put("expect", expectation.toString());
+			if(exception != null) {
+				json.put("expect", exception.toString());
+			}
 			return json;
 		}
 
@@ -197,7 +199,12 @@ public class TraceTest {
 			Transaction tx = Transaction.fromJSON(json.getJSONObject("transaction"));
 			Trace trace = Trace.fromJSON(json.getJSONArray("trace"));
 			String id = json.getString("id");
-			return new Instance(id, tx, trace, Expectation.valueOf(json.getString("expect")));
+			Transaction.Exception exception = null;
+			// Parse expectation if there is one
+			if(json.has("expect")) {
+				exception = Exception.valueOf(json.getString("expect"));
+			}
+			return new Instance(id, tx, trace, exception);
 		}
 	}
 }

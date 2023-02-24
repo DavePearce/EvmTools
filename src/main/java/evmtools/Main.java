@@ -98,7 +98,7 @@ public class Main {
 						Transaction tx = inst.instantiate();
 						Trace t = geth.t8n(fork, inst.getEnvironment(), state, tx);
 						// Test can convert transaction to JSON, and then back again.
-						instances.add(new TraceTest.Instance(id, tx, t, inst.expect));
+						instances.add(new TraceTest.Instance(id, tx, t, inst.exception));
 					}
 					if (instances.size() != 0) {
 						forks.put(fork, instances);
