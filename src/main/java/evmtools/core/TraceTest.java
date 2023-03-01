@@ -23,7 +23,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import evmtools.core.Transaction.Exception;
+import evmtools.core.Transaction.Outcome;
 
 public class TraceTest {
 	/**
@@ -141,15 +141,11 @@ public class TraceTest {
 	public static class Instance {
 		private TraceTest parent;
 		private final String id;
-		private final Transaction transaction;
-		private final Trace trace;
-		private final Transaction.Exception exception;
+		private final Tx transaction;
 
-		public Instance(String id, Transaction transaction, Trace trace, Transaction.Exception exception) {
+		public Instance(String id, Tx transaction) {
 			this.id = id;
 			this.transaction = transaction;
-			this.trace = trace;
-			this.exception = exception;
 		}
 
 		public Environment getEnvironment() {
@@ -160,16 +156,8 @@ public class TraceTest {
 			return parent.getWorldState();
 		}
 
-		public Transaction getTransaction() {
+		public Tx getTransaction() {
 			return transaction;
-		}
-
-		public Trace getTrace() {
-			return trace;
-		}
-
-		public Transaction.Exception getException() {
-			return exception;
 		}
 
 		@Override
@@ -187,24 +175,75 @@ public class TraceTest {
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("id", id);
-			json.put("transaction", transaction.toJSON());
-			json.put("trace", trace.toJSON(abbreviate));
-			if(exception != null) {
-				json.put("expect", exception.toString());
-			}
+			json.put("tx", transaction.toJSON(abbreviate));
 			return json;
 		}
 
 		public static Instance fromJSON(JSONObject json) throws JSONException {
-			Transaction tx = Transaction.fromJSON(json.getJSONObject("transaction"));
-			Trace trace = Trace.fromJSON(json.getJSONArray("trace"));
 			String id = json.getString("id");
-			Transaction.Exception exception = null;
-			// Parse expectation if there is one
-			if(json.has("expect")) {
-				exception = Exception.valueOf(json.getString("expect"));
+			Tx tx = Tx.fromJSON(json.getJSONObject("tx"));
+			return new Instance(id, tx);
+		}
+	}
+
+	/**
+	 * A transaction augmented with trace information about how it should be
+	 * executed.
+	 *
+	 * @author David J. Pearce
+	 *
+	 */
+	public static class Tx {
+		/**
+		 * Details of the transaction used to drive the EVM.
+		 */
+		private final Transaction transaction;
+		/**
+		 * Expected outcome from attempting to execute the transaction.
+		 */
+		private final Transaction.Outcome outcome;
+		/**
+		 * Execution trace for the transaction (which may be empty if the transaction
+		 * failed immediately e.g. because insufficient funds).
+		 */
+		private final Trace trace;
+
+		public Tx(Transaction transaction, Transaction.Outcome outcome, Trace trace) {
+			this.transaction = transaction;
+			this.outcome = outcome;
+			this.trace = trace;
+		}
+
+		public Transaction getTransaction() {
+			return transaction;
+		}
+
+		public Transaction.Outcome getOutcome() {
+			return outcome;
+		}
+
+		public Trace getTrace() {
+			return trace;
+		}
+
+		public JSONObject toJSON(boolean abbreviate) throws JSONException {
+			JSONObject json = new JSONObject();
+			json.put("transaction",transaction.toJSON());
+			if(trace != null) {
+				json.put("trace",trace.toJSON(abbreviate));
 			}
-			return new Instance(id, tx, trace, exception);
+			json.put("outcome",outcome.toString());
+			return json;
+		}
+
+		public static Tx fromJSON(JSONObject json) throws JSONException {
+			Transaction tx = Transaction.fromJSON(json.getJSONObject("transaction"));
+			Transaction.Outcome outcome = Transaction.Outcome.valueOf(json.getString("outcome"));
+			Trace trace = null;
+			if(json.has("trace")) {
+				trace = Trace.fromJSON(json.getJSONObject("trace"));
+			}
+			return new Tx(tx,outcome,trace);
 		}
 	}
 }

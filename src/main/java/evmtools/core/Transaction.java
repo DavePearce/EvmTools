@@ -26,43 +26,48 @@ import evmtools.util.Hex;
 
 public abstract class Transaction {
 	/**
-	 * A transaction exception arises when a transaction is rejected before any
-	 * execution can occur. There are a small number of reasons why this can happen.
-	 * For example, the sender has insufficient funds for the gas limit they have
-	 * requested.
+	 * Represents the outcome of a transaction. At a high-level, there two possible
+	 * scenarios: (1) the transaction was executed and either suceeded or reverted
+	 * (e.g. because the EVM raised an exception or reached a REVERT instruction);
+	 * or (2) transaction execution did not even begin (e.g. sender has insufficient
+	 * funds, or provided an insufficient gas limit, etc).
 	 *
 	 * @author David J. Pearce
 	 *
 	 */
-	public enum Exception {
+	public enum Outcome {
+		/**
+		 * Transaction was executed.
+		 */
+		EXECUTED,
 		/**
 		 * Indicates not enough gas to start with!
 		 */
-		IntrinsicGas,
+		INTRINSIC_GAS,
 		/**
-		 * Indicates out-of-gas.
+		 * Indicates out-of-gas?
 		 */
-		OutOfGas,
+		OUT_OF_GAS,
 		/**
 		 * Transaction type not supported.
 		 */
-		TypeNotSupported,
+		TYPE_NOT_SUPPORTED,
 		/**
 		 * Nonce has maximum value and cannot be incremented.
 		 */
-		NonceHasMaxValue,
+		NONCE_MAX_VALUE,
 		/**
 		 * Sender of transaction is not an End User Account.
 		 */
-		SenderNotEOA,
+		SENDER_NOT_EOA,
 		/**
 		 * ?
 		 */
-		FeeCapLessThanBlocks,
+		FEECAP_LESS_BLOCKS,
 		/**
 		 * Insufficient funds for transaction.
 		 */
-		NoFunds,
+		NO_FUNDS,
 	}
 
 	/**

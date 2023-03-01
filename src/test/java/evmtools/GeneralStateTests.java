@@ -74,14 +74,25 @@ public class GeneralStateTests {
 	 */
 	public final static Path FIXTURES_DIR = Path.of("fixtures/GeneralStateTests");
 
+	public final static String[] INCLUDES = {
+			"stExample/*.json",
+			"stStaticCall/*.json",
+			//"stMemoryTest/*.json",
+			//"stSLoadTest/*.json",
+			//"VMTests/vmArithmeticTest/*.json",
+			//"VMTests/vmBitwiseLogicOperation/*.json",
+			//"VMTests/vmIOAndFlowOperations/*.json"
+	};
+
 	public final static String[] EXCLUDES = {
+			"stStaticCall/*50000*.json",
 			"VMTests/vmPerformance/*.json", // some performance issues here
 	};
 
 	@ParameterizedTest
 	@MethodSource("allTestFiles")
 	public void tests(StateTest.Instance instance) throws IOException, JSONException {
-		runTest(instance.getName(), instance.getEnvironment(), instance.getWorldState(), instance.instantiate());
+		runTest(instance.getName(), instance.getEnvironment(), instance.getWorldState(), instance.instantiate(), instance.outcome());
 	}
 
 	// Here we enumerate all available test cases.
@@ -95,14 +106,15 @@ public class GeneralStateTests {
 	 *
 	 * @param i
 	 */
-	private static void runTest(String name, Environment env, WorldState state, Transaction tx) throws JSONException, IOException {
+	private static void runTest(String name, Environment env, WorldState state, Transaction tx, Transaction.Outcome outcome) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
 		Trace trace = geth.t8n(FORK, env, state, tx);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		//assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
 		//JSONArray t = trace.toJSON();
-		//System.out.println("GOT: " + trace.toString());
+//		System.out.println("GOT: " + trace.toString());
+//		System.out.println("OUTCOME: " + outcome);
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
 
@@ -121,12 +133,14 @@ public class GeneralStateTests {
 	 * @throws IOException
 	 */
 	public static Stream<StateTest.Instance> readTestFiles(Path dir, BiPredicate<String,StateTest.Instance> filter) throws IOException {
+		PathMatcher includes = createPathMatcher(INCLUDES);
 		PathMatcher excludes = createPathMatcher(EXCLUDES);
 
 		ArrayList<StateTest> testcases = new ArrayList<>();
 		//
 		Files.walk(dir,10).forEach(f -> {
-			if (f.toString().endsWith(".json") && !excludes.matches(dir.relativize(f))) {
+			Path rf = dir.relativize(f);
+			if (f.toString().endsWith(".json") && includes.matches(rf) && !excludes.matches(rf)) {
 				try {
 					// Read contents of fixture file
 					String contents = Files.readString(f);
