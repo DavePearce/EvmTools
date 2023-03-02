@@ -325,7 +325,6 @@ public class StateTest {
 					throw new RuntimeException("unrecognised exception: " + except);
 				}
 			} else {
-				// FIXME: how to distinguish REVERT?
 				outcome = Transaction.Outcome.EXECUTED;
 			}
 			byte[] hash = Hex.toBytes(json.getString("hash"));

@@ -76,9 +76,11 @@ public class GeneralStateTests {
 
 	public final static String[] INCLUDES = {
 			"stExample/*.json",
-			"stStaticCall/*.json",
+			//"stStaticCall/*.json",
 			//"stMemoryTest/*.json",
 			//"stSLoadTest/*.json",
+//			"stSStoreTest/*.json",
+			"stCreateTest/*.json",
 			//"VMTests/vmArithmeticTest/*.json",
 			//"VMTests/vmBitwiseLogicOperation/*.json",
 			//"VMTests/vmIOAndFlowOperations/*.json"
@@ -109,11 +111,11 @@ public class GeneralStateTests {
 	private static void runTest(String name, Environment env, WorldState state, Transaction tx, Transaction.Outcome outcome) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
 		Trace trace = geth.t8n(FORK, env, state, tx);
+		System.out.println("GOT: " + outcome);
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		//assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
 		//JSONArray t = trace.toJSON();
-//		System.out.println("GOT: " + trace.toString());
 //		System.out.println("OUTCOME: " + outcome);
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}
