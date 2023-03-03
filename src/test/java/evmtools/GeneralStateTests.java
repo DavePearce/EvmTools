@@ -13,6 +13,7 @@
  */
 package evmtools;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -75,12 +76,15 @@ public class GeneralStateTests {
 	public final static Path FIXTURES_DIR = Path.of("fixtures/GeneralStateTests");
 
 	public final static String[] INCLUDES = {
-			"stExample/*.json",
+			//"stExample/*.json",
 			//"stStaticCall/*.json",
+			"stReturnDataTest/*.json",
+			//"stWalletTest/walletConstructionOOG.json",
+			//"stRevertTest/*.json",
 			//"stMemoryTest/*.json",
 			//"stSLoadTest/*.json",
-//			"stSStoreTest/*.json",
-			"stCreateTest/*.json",
+			//"stSStoreTest/*.json",
+			//"stCreateTest/*.json",
 			//"VMTests/vmArithmeticTest/*.json",
 			//"VMTests/vmBitwiseLogicOperation/*.json",
 			//"VMTests/vmIOAndFlowOperations/*.json"
@@ -110,12 +114,12 @@ public class GeneralStateTests {
 	 */
 	private static void runTest(String name, Environment env, WorldState state, Transaction tx, Transaction.Outcome outcome) throws JSONException, IOException {
 		Geth geth = new Geth().setTimeout(TIMEOUT * 1000);
-		Trace trace = geth.t8n(FORK, env, state, tx);
-		System.out.println("GOT: " + outcome);
+		Trace trace = geth.t8n(FORK, env, state, tx).trace;
 		// Test can convert transaction to JSON, and then back again.
 		assertEquals(state, WorldState.fromJSON(state.toJSON()));
 		//assertEquals(tx, Transaction.fromJSON(tx.toJSON()));
 		//JSONArray t = trace.toJSON();
+		System.out.println(trace);
 //		System.out.println("OUTCOME: " + outcome);
 		//assertEquals(trace, Trace.fromJSON(trace.toJSON()));
 	}

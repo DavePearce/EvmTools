@@ -39,15 +39,27 @@ public abstract class Transaction {
 		/**
 		 * Transaction was executed.
 		 */
-		EXECUTED,
+		RETURN,
+		/**
+		 * Transaction reverted.
+		 */
+		REVERT,
+		/**
+		 * Unknown error
+		 */
+		UNKNOWN,
 		/**
 		 * Indicates not enough gas to start with!
 		 */
 		INTRINSIC_GAS,
 		/**
-		 * Indicates out-of-gas?
+		 * Indicates out-of-gas
 		 */
 		OUT_OF_GAS,
+		/**
+		 * Insufficient gas provided to initialise the contract after the initcode returned.
+		 */
+		CREATION_OUT_OF_GAS,
 		/**
 		 * Transaction type not supported.
 		 */
@@ -67,7 +79,48 @@ public abstract class Transaction {
 		/**
 		 * Insufficient funds for transaction.
 		 */
-		NO_FUNDS,
+		INSUFFICIENT_FUNDS,
+		/**
+		 * Max code size exceeded
+		 */
+		CODESIZE_EXCEEDED,
+		/**
+		 * Attempt to execute invalid opcode
+		 */
+		INVALID_OPCODE,
+		/**
+		 * Attempt to create contract with EOF marker.
+		 */
+		INVALID_EOF,
+		/**
+		 * Attempt to pop operand from an empty stack.
+		 */
+		STACK_UNDERFLOW,
+		/**
+		 * Attempt to push operand onto stack with 1024 items.
+		 */
+		STACK_OVERFLOW,
+		MEMORY_OVERFLOW,
+		/**
+		 * Attempt to access returndata out-of-bounds.
+		 */
+		RETURNDATA_OVERFLOW,
+		/**
+		 * Attempt to branch to instruction which is not a <code>JUMPDEST</code>.
+		 */
+		INVALID_JUMPDEST,
+		/**
+		 * Call depth exceeded 1024.
+		 */
+		CALLDEPTH_EXCEEDED,
+		/**
+		 * Attempt to create account which already exists.
+		 */
+		ACCOUNT_COLLISION,
+		/**
+		 * Attempt to modify state from a static call.
+		 */
+		WRITE_PROTECTION,
 	}
 
 	/**

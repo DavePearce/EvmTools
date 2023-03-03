@@ -310,7 +310,7 @@ public class StateTest {
 					break;
 				}
 				case "TR_NoFunds": {
-					outcome = Transaction.Outcome.NO_FUNDS;
+					outcome = Transaction.Outcome.INSUFFICIENT_FUNDS;
 					break;
 				}
 				case "TR_SenderNotEOA": {
@@ -325,7 +325,7 @@ public class StateTest {
 					throw new RuntimeException("unrecognised exception: " + except);
 				}
 			} else {
-				outcome = Transaction.Outcome.EXECUTED;
+				outcome = Transaction.Outcome.RETURN;
 			}
 			byte[] hash = Hex.toBytes(json.getString("hash"));
 			byte[] txBytes = Hex.toBytes(json.getString("txbytes"));

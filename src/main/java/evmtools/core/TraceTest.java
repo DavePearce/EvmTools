@@ -24,6 +24,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import evmtools.core.Transaction.Outcome;
+import evmtools.util.Hex;
 
 public class TraceTest {
 	/**
@@ -203,14 +204,19 @@ public class TraceTest {
 		 */
 		private final Transaction.Outcome outcome;
 		/**
+		 * Expected data (if any) from transaction.
+		 */
+		private final byte[] data;
+		/**
 		 * Execution trace for the transaction (which may be empty if the transaction
 		 * failed immediately e.g. because insufficient funds).
 		 */
 		private final Trace trace;
 
-		public Tx(Transaction transaction, Transaction.Outcome outcome, Trace trace) {
+		public Tx(Transaction transaction, Transaction.Outcome outcome, byte[] data, Trace trace) {
 			this.transaction = transaction;
 			this.outcome = outcome;
+			this.data = data;
 			this.trace = trace;
 		}
 
@@ -222,6 +228,10 @@ public class TraceTest {
 			return outcome;
 		}
 
+		public byte[] getData() {
+			return data;
+		}
+
 		public Trace getTrace() {
 			return trace;
 		}
@@ -229,21 +239,23 @@ public class TraceTest {
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
 			JSONObject json = new JSONObject();
 			json.put("transaction",transaction.toJSON());
+			json.put("outcome",outcome.toString());
+			json.put("data",Hex.toAbbreviatedHexString(data));
 			if(trace != null) {
 				json.put("trace",trace.toJSON(abbreviate));
 			}
-			json.put("outcome",outcome.toString());
 			return json;
 		}
 
 		public static Tx fromJSON(JSONObject json) throws JSONException {
 			Transaction tx = Transaction.fromJSON(json.getJSONObject("transaction"));
 			Transaction.Outcome outcome = Transaction.Outcome.valueOf(json.getString("outcome"));
+			byte[] data = Hex.toBytesFromAbbreviated(json.getString("data"));
 			Trace trace = null;
 			if(json.has("trace")) {
 				trace = Trace.fromJSON(json.getJSONObject("trace"));
 			}
-			return new Tx(tx,outcome,trace);
+			return new Tx(tx,outcome,data,trace);
 		}
 	}
 }

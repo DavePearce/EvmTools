@@ -36,38 +36,18 @@ import evmtools.util.Hex;
  *
  */
 public class Trace {
-	public enum Outcome {
-		RETURN,
-		REVERT,
-		INSUFFICIENT_GAS,
-		INSUFFICIENT_FUNDS,
-		INVALID_OPCODE,
-		INVALID_EOF,
-		STACK_UNDERFLOW,
-		STACK_OVERFLOW,
-		MEMORY_OVERFLOW,
-		RETURNDATA_OVERFLOW,
-		NONCE_OVERFLOW,
-		INVALID_JUMPDEST,
-		CALLDEPTH_EXCEEDED,
-		CODESIZE_EXCEEDED,
-		ACCOUNT_COLLISION,
-		WRITE_PROTECTION,
-		ERROR_UNKNOWN;
-	}
-
 	private final List<Element> elements;
 	/**
 	 * The outcome from the execution.
 	 */
-	private final Outcome outcome;
+	private final Transaction.Outcome outcome;
 	/**
 	 * Data returned from the execution in the case of <code>RETURNS</code> or
 	 * <code>REVERTS</code>. Otherwise, it is null.
 	 */
 	private final byte[] data;
 
-	public Trace(List<Element> elements, Outcome outcome, byte[] data) {
+	public Trace(List<Element> elements, Transaction.Outcome outcome, byte[] data) {
 		this.elements = new ArrayList<>(elements);
 		this.outcome = outcome;
 		this.data = data;
@@ -77,12 +57,12 @@ public class Trace {
 		return elements;
 	}
 
-	public Outcome getOutcome() {
+	public Transaction.Outcome getOutcome() {
 		return outcome;
 	}
 
 	public byte[] getData() {
-		if(outcome == Outcome.RETURN || outcome == Outcome.REVERT) {
+		if(outcome == Transaction.Outcome.RETURN || outcome == Transaction.Outcome.REVERT) {
 			return data;
 		} else {
 			throw new IllegalArgumentException("data only for RETURNS or REVERTS");
@@ -163,7 +143,7 @@ public class Trace {
 				elements.add(ith);
 			}
 		}
-		Outcome outcome = Outcome.valueOf(json.getString("outcome"));
+		Transaction.Outcome outcome = Transaction.Outcome.valueOf(json.getString("outcome"));
 		byte[] data = null;
 		if(json.has("data")) {
 			data = Hex.toBytesFromAbbreviated(json.getString("data"));
