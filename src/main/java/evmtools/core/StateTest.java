@@ -213,12 +213,18 @@ public class StateTest {
 		private StateTest parent;
 		public final String fork;
 		public final Map<String, Integer> indexes;
-		public final Transaction.Expectation expect;
+		public final Transaction.Outcome outcome;
+		public final byte[] hash; // hash of the transaction
+		public final byte[] txBytes; // transaction bytes (in rlp)
+		public final byte[] logs; // ???
 
-		public Instance(String fork, Map<String, Integer> indices, Transaction.Expectation expect) {
+		public Instance(String fork, Map<String, Integer> indices, Transaction.Outcome exception, byte[] hash, byte[] txBytes, byte[] logs) {
 			this.fork = fork;
 			this.indexes = Collections.unmodifiableMap(indices);
-			this.expect = expect;
+			this.outcome = exception;
+			this.hash = hash;
+			this.txBytes = txBytes;
+			this.logs = logs;
 		}
 
 		public String getID() {
@@ -263,6 +269,15 @@ public class StateTest {
 			return parent.transaction.instantiate(indexes);
 		}
 
+		/**
+		 * Get the expected outcome for this transaction.
+		 *
+		 * @return
+		 */
+		public Transaction.Outcome outcome() {
+			return outcome;
+		}
+
 		@Override
 		public String toString() {
 			return getName();
@@ -274,33 +289,48 @@ public class StateTest {
 			map.put("data", is.getInt("data"));
 			map.put("gas", is.getInt("gas"));
 			map.put("value", is.getInt("value"));
-			Transaction.Expectation kind;
+			Transaction.Outcome outcome;
 			if (json.has("expectException")) {
 				String except = json.getString("expectException");
 				switch (except) {
 				case "TR_IntrinsicGas": {
-					kind = Transaction.Expectation.IntrinsicGas;
+					outcome = Transaction.Outcome.INTRINSIC_GAS;
 					break;
 				}
 				case "TR_GasLimitReached": {
-					kind = Transaction.Expectation.OutOfGas;
+					outcome = Transaction.Outcome.OUT_OF_GAS;
 					break;
 				}
 				case "TR_TypeNotSupported": {
-					kind = Transaction.Expectation.TypeNotSupported;
+					outcome = Transaction.Outcome.TYPE_NOT_SUPPORTED;
 					break;
 				}
 				case "TR_NonceHasMaxValue": {
-					kind = Transaction.Expectation.NonceHasMaxValue;
+					outcome = Transaction.Outcome.NONCE_MAX_VALUE;
+					break;
+				}
+				case "TR_NoFunds": {
+					outcome = Transaction.Outcome.INSUFFICIENT_FUNDS;
+					break;
+				}
+				case "TR_SenderNotEOA": {
+					outcome = Transaction.Outcome.SENDER_NOT_EOA;
+					break;
+				}
+				case "TR_FeeCapLessThanBlocks": {
+					outcome = Transaction.Outcome.FEECAP_LESS_BLOCKS;
 					break;
 				}
 				default:
 					throw new RuntimeException("unrecognised exception: " + except);
 				}
 			} else {
-				kind = Transaction.Expectation.OK;
+				outcome = Transaction.Outcome.RETURN;
 			}
-			return new Instance(fork, map, kind);
+			byte[] hash = Hex.toBytes(json.getString("hash"));
+			byte[] txBytes = Hex.toBytes(json.getString("txbytes"));
+			byte[] logs = Hex.toBytes(json.getString("logs"));
+			return new Instance(fork, map, outcome, hash, txBytes, logs);
 		}
 	}
 }

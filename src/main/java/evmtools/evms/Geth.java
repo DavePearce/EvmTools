@@ -22,6 +22,7 @@ import java.nio.file.Files;
 import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +36,9 @@ import evmtools.core.Environment;
 import evmtools.core.Trace;
 import evmtools.core.Transaction;
 import evmtools.core.WorldState;
-import evmtools.core.Trace.Exception;
 import evmtools.util.AbstractExecutable;
+import evmtools.util.Bytecodes;
+
 import static evmtools.util.Arrays.trimFront;
 import evmtools.util.Hex;
 
@@ -55,8 +57,18 @@ public class Geth extends AbstractExecutable {
 	 */
 	private final String cmd = "evm";
 
+	/**
+	 * Parameter which controls how much of the stack is actually recorded in the
+	 * trace.
+	 */
 	private int stackSize = 10;
 
+	/**
+	 * Set the timeout (in milliseconds)
+	 *
+	 * @param timeout
+	 * @return
+	 */
 	public Geth setTimeout(int timeout) {
 		this.timeout = timeout;
 		return this;
@@ -91,66 +103,7 @@ public class Geth extends AbstractExecutable {
 		}
 	}
 
-	/**
-	 * Execute a given transaction using the EVM.
-	 *
-	 * @param tx
-	 * @return
-	 */
-	public Trace run(Environment env, WorldState pre, Transaction tx) throws JSONException {
-		String preStateFile = null;
-		try {
-			preStateFile = createPreStateFile(env,pre,tx);
-			// Build up the command
-			ArrayList<String> command = new ArrayList<>();
-			command.add(cmd);
-			command.add("--json");
-			command.add("--input");
-			command.add(Hex.toHexString(tx.data));
-			command.add("--nomemory=false");
-			command.add("--nostorage=false");
-			command.add("--prestate");
-			command.add(preStateFile);
-			command.add("--value");
-			command.add(Hex.toHexString(tx.value));
-			command.add("--gas");
-			command.add(Hex.toHexString(tx.gasLimit));
-			command.add("--price");
-			command.add(Hex.toHexString(tx.gasPrice));
-			command.add("--sender");
-			command.add(Hex.toHexString(tx.sender));
-			if(tx.to != null) {
-				command.add("--receiver");
-				command.add(Hex.toHexString(tx.to));
-				command.add("--code");
-				command.add(Hex.toHexString(tx.getCode(pre)));
-			} else {
-				command.add("--create");
-			}
-			command.add("run");
-			//
-			String out = exec(command);
-			//
-			if(out != null) {
-				return parseTraceOutput(new Scanner(out));
-			} else {
-				// Geth failed for some reason, so dump the input to help debugging.
-				//System.out.println(pre.toJSON().toString(2));
-				return null;
-			}
-		} catch (IOException e) {
-			return null;
-		} catch (InterruptedException e) {
-			return null;
-		} finally {
-			if (preStateFile != null) {
-				// delete the temporary file
-				new File(preStateFile).delete();
-			}
-		}
-	}
-
-	public Trace runt8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
+	public Result t8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
 		Path tempDir = null;
 		String envFile = null;
 		String allocFile = null;
@@ -168,9 +121,7 @@ public class Geth extends AbstractExecutable {
 			command.add(fork);
 			// Trace info
 			command.add("--trace");
-			//command.add("--trace.memory");
-//			command.add("--trace.nostorage");
-//			command.add("false");
+			command.add("--trace.memory"); // ensures memory included in trace output
 			// Input
 			command.add("--input.env");
 			command.add(envFile);
@@ -180,8 +131,7 @@ public class Geth extends AbstractExecutable {
 			command.add(txsFile);
 			command.add("--output.basedir");
 			command.add(tempDir.toString());
-//			command.add("--output.result");
-//			command.add("stdout");
+			// Output
 			command.add("--output.alloc");
 			command.add("alloc-out.json");
 			//
@@ -191,12 +141,9 @@ public class Geth extends AbstractExecutable {
 				// Parse into JSON. Geth produces one line per trace element.
 				return readTraceFile(tempDir);
 			} else {
-				// Geth failed for some reason, so dump the input to help debugging.
-				//System.out.println(pre.toJSON().toString(2));
-				return null;
+				// Geth failed for some reason
+				throw new RuntimeException();
 			}
-		} catch (IOException e) {
-			return null;
 		} catch (InterruptedException e) {
 			return null;
 		} finally {
@@ -204,12 +151,24 @@ public class Geth extends AbstractExecutable {
 		}
 	}
 
+	public class Result {
+		public final Transaction.Outcome outcome;
+		public final byte[] data;
+		public final Trace trace;
+
+		public Result(Transaction.Outcome outcome, byte[] data, Trace trace) {
+			this.outcome = outcome;
+			this.trace = trace;
+			this.data = data;
+		}
+	}
+
 	// ===============================================================================
 	// Parsers for trace output
 	// ===============================================================================
 
-	private Trace readTraceFile(Path dir) throws IOException {
-		List<Trace> tr = new ArrayList<>();
+	private Result readTraceFile(Path dir) throws IOException {
+		List<Result> tr = new ArrayList<>();
 		//
 		Files.walk(dir, 10).forEach(f -> {
 			try {
@@ -217,10 +176,19 @@ public class Geth extends AbstractExecutable {
 					if (tr.size() > 1) {
 						throw new IllegalArgumentException("multiple trace files detected");
 					}
-					tr.add(parseTraceOutput(new Scanner(f)));
+					TraceIterator iter = new TraceIterator(f);
+					if (iter.hasNext() && !iter.peek().has("output")) {
+						Trace t = parseTraceAtDepth(iter, 1);
+						tr.add(parseTransactionOutcome(iter,t));
+					} else if(iter.hasNext()){
+						tr.add(parseTransactionOutcome(iter,null));
+					} else {
+						tr.add(new Result(Transaction.Outcome.UNKNOWN, new byte[0], null));
+					}
+					iter.close();
 				}
 			} catch (JSONException e) {
-				throw new RuntimeException("Unable to parse JSON trace file");
+				throw new RuntimeException("Unable to parse JSON trace file",e);
 			} catch (IOException e) {
 				throw new RuntimeException(e);
 			}
@@ -228,60 +196,198 @@ public class Geth extends AbstractExecutable {
 		return tr.get(0);
 	}
 
-	private Trace parseTraceOutput(Scanner scanner) throws JSONException {
+	private Result parseTransactionOutcome(TraceIterator iter, Trace trace) throws JSONException {
+		if (iter.hasNext()) {
+			JSONObject json = iter.next();
+			byte[] data = Hex.toBytes(json.getString("output"));
+			Transaction.Outcome outcome = Transaction.Outcome.RETURN;
+			if (json.has("error")) {
+				outcome = parseError(json.getString("error"));
+			}
+			return new Result(outcome, data, trace);
+		} else {
+			throw new IllegalArgumentException("deadcode reached");
+		}
+	}
+	/**
+	 * Parse an execution trace at a given depth. Observe that this may contain
+	 * nested traces within which correspond to contract calls.
+	 *
+	 * @param scanner
+	 * @param depth
+	 * @return
+	 * @throws JSONException
+	 */
+	private Trace parseTraceAtDepth(TraceIterator iter, int depth) throws JSONException {
 		// Parse into JSON. Geth produces one line per trace element.
 		ArrayList<Trace.Element> elements = new ArrayList<>();
-		while (scanner.hasNextLine()) {
-			String line = scanner.nextLine();
-			JSONObject element = new JSONObject(line);
-			//if(!shouldIgnore(element)) {
-			parseElement(element, elements);
-			//}
+		JSONObject json = iter.peek();
+		// Continue parsing the trace at the given depth, including anything within it.
+		while (!json.has("output") && json.getInt("depth") >= depth) {
+			int d = json.getInt("depth");
+			// Handle nested case
+			if (d > depth) {
+				// Parse nested trace
+				Trace sub = parseTraceAtDepth(iter, depth + 1);
+				elements.add(new Trace.SubTrace(sub));
+			} else if (json.has("error")) {
+				// Indicates this step caused an exception, so we just have to decide whether or
+				// not the offending instruction should be included.
+				String error = json.getString("error");
+				if (!isPostError(parseError(error))) {
+					elements.add(parseStep(json, stackSize));
+				}
+				iter.next();
+				return parseTraceError(json, elements);
+			} else {
+				elements.add(parseStep(json, stackSize));
+				iter.next();
+			}
+			// Peek next step
+			json = iter.peek();
 		}
-		scanner.close();
-		return new Trace(elements);
+		// Sanity check what to do
+		return parseTraceReturn(json, elements);
 	}
 
-	public void parseElement(JSONObject json, List<Trace.Element> elements) throws JSONException {
-		if (json.has("error") && json.has("output")) {
-			String err = json.getString("error");
-			// Abnormal return (e.g. REVERT or exception)
-			if (err.equals("execution reverted")) {
-				byte[] data = Hex.toBytes(json.getString("output"));
-				elements.add(new Trace.Reverts(data));
-			} else if(err.equals("max code size exceeded")) {
-				Exception.Error e = parseError(err);
-				elements.add(new Trace.Exception(e));
-			}
-		} else if (json.has("output")) {
-			// Normal return (e.g. STOP or RETURNS)
-			byte[] data = Hex.toBytes(json.getString("output"));
-			elements.add(new Trace.Returns(data));
-		} else if (json.has("pc")) {
-			Trace.Step step = parseStep(json, stackSize);
-			if(!json.has("error")) {
-				// Easy case: no error.
-				elements.add(step);
-			} else {
-				String err = json.getString("error");
-				if(err.equals("execution reverted")) {
-					// NOTE: whilst we could try to manage this by inserting the expected instance
-					// of <code>Trace.Reverts</code>, we would still have to figure out the right
-					// data to supply..
-					// elements.add(new Trace.Reverts(new byte[0]));
-				} else {
-					// Have an error, therefore need to decide whether the step is included or not.
-					Exception.Error e = parseError(err);
-					if(!isPostError(e)) {
-						elements.add(step);
-					}
-					elements.add(new Trace.Exception(e));
-				}
-			}
+	private Trace parseTraceError(JSONObject json, List<Trace.Element> elements) throws JSONException {
+		// Exception terminator
+		Transaction.Outcome outcome = parseError(json.getString("error"));
+		// Extract return bytes (if any)
+		byte[] data = (outcome == Transaction.Outcome.REVERT) ? Hex.toBytes(json.getString("output")) : null;
+		//
+		return new Trace(elements, outcome, data);
+	}
+
+	/**
+	 * Parse the outcome of an execution trace and create a completed
+	 * <code>Trace</code> using the steps seen thus far.
+	 *
+	 * @param json
+	 * @param elements
+	 * @return
+	 * @throws JSONException
+	 */
+	private Trace parseTraceReturn(JSONObject json, List<Trace.Element> elements) throws JSONException {
+		Trace.Element last = elements.get(elements.size() - 1);
+		if (last instanceof Trace.Step) {
+			// Extract the return data.
+			Transaction.Outcome outcome = isReturn((Trace.Step) last) ? Transaction.Outcome.RETURN : Transaction.Outcome.REVERT;;
+			byte[] returndata = extractReturnData((Trace.Step) last);
+			return new Trace(elements, outcome, returndata);
 		} else {
-			throw new IllegalArgumentException("unknown trace record: " + json.toString());
+			throw new IllegalArgumentException("deadcode reached");
 		}
 	}
+
+	/**
+	 * Convert a Geth error message into an <code>Transaction.Outcome</code>
+	 * object.
+	 *
+	 * @param err
+	 * @return
+	 */
+	private static Transaction.Outcome parseError(String err) {
+		switch(err) {
+		case "execution reverted":
+			return Transaction.Outcome.REVERT;
+		case "gas uint64 overflow":
+		case "out of gas":
+			return Transaction.Outcome.OUT_OF_GAS;
+		case "invalid jump destination":
+			return Transaction.Outcome.INVALID_JUMPDEST;
+		case "return data out of bounds":
+			return Transaction.Outcome.RETURNDATA_OVERFLOW;
+		case "returndata overflow":
+			return Transaction.Outcome.RETURNDATA_OVERFLOW;
+		case "call depth exceeded":
+			return Transaction.Outcome.CALLDEPTH_EXCEEDED;
+		case "write protection":
+			return Transaction.Outcome.WRITE_PROTECTION;
+		case "max code size exceeded":
+			return Transaction.Outcome.CODESIZE_EXCEEDED;
+		case "contract creation code storage out of gas":
+			return Transaction.Outcome.CREATION_OUT_OF_GAS;
+		default:
+			if(err.startsWith("stack underflow")) {
+				return Transaction.Outcome.STACK_UNDERFLOW;
+			} else if(err.startsWith("stack limit reached")) {
+				return Transaction.Outcome.STACK_OVERFLOW;
+			} else if(err.startsWith("invalid opcode")) {
+				return Transaction.Outcome.INVALID_OPCODE;
+			} else {
+				throw new IllegalArgumentException(err);
+			}
+		}
+	}
+
+	/**
+	 * Attempt to determine the return data by looking at the last instruction
+	 * executed.
+	 *
+	 * @param last
+	 * @return
+	 */
+	private byte[] extractReturnData(Trace.Step last) {
+		switch (last.op) {
+		case Bytecodes.STOP:
+		case Bytecodes.SELFDESTRUCT:
+			return new byte[0];
+		case Bytecodes.RETURN:
+		case Bytecodes.REVERT:
+			// Extract return data from memory.
+			int n = last.stack.length-1;
+			BigInteger u0 = last.stack[n];
+			BigInteger u1 = last.stack[n-1];
+			return readFromMemory(last.memory,u0,u1);
+		default:
+			throw new IllegalArgumentException("unexpected end-of-trace (0x" + Integer.toHexString(last.op) + ")");
+		}
+	}
+
+	/**
+	 * Check whether last instruction was a revert or not.
+	 *
+	 * @param last
+	 * @return
+	 */
+	private boolean isReturn(Trace.Step last) {
+		switch (last.op) {
+		case Bytecodes.STOP:
+		case Bytecodes.SELFDESTRUCT:
+		case Bytecodes.RETURN:
+			return true;
+		case Bytecodes.REVERT:
+			return false;
+		default:
+			throw new IllegalArgumentException("unexpected end-of-trace (0x" + Integer.toHexString(last.op) + ")");
+		}
+	}
+
+	/**
+	 * Read from memory whilst padding anything read above what has been expanded.
+	 *
+	 * @param bytes
+	 * @param _start
+	 * @param _length
+	 * @return
+	 */
+	private byte[] readFromMemory(byte[] bytes, BigInteger _start, BigInteger _length) {
+		try {
+			int start = _start.intValueExact();
+			int len = _length.intValueExact();
+			byte[] data = new byte[len];
+			if(start < bytes.length) {
+				int max = Math.min(bytes.length - start, len);
+				System.arraycopy(bytes, start, data, 0, max);
+			}
+			return data;
+		} catch(ArithmeticException e) {
+			// This indicates we couldn't fit one of the bigint values into an int.
+			return new byte[0];
+		}
+	}
+
 
 	/**
 	 * Parse an atomic execution step from a given JSON object.
@@ -309,53 +415,17 @@ public class Geth extends AbstractExecutable {
 		return new Trace.Step(pc, op, depth, gas, stack.length, trimFront(stackSize,stack), memory, storage);
 	}
 
-	/**
-	 * Convert a Geth error message into an <code>Trace.Exception.Error</code>
-	 * object.
-	 *
-	 * @param err
-	 * @return
-	 */
-	private static Trace.Exception.Error parseError(String err) {
-		switch(err) {
-		case "gas uint64 overflow":
-		case "out of gas":
-			return Exception.Error.INSUFFICIENT_GAS;
-		case "invalid jump destination":
-			return Exception.Error.INVALID_JUMPDEST;
-		case "return data out of bounds":
-			return Exception.Error.RETURNDATA_OVERFLOW;
-		case "returndata overflow":
-			return Exception.Error.RETURNDATA_OVERFLOW;
-		case "call depth exceeded":
-			return Exception.Error.CALLDEPTH_EXCEEDED;
-		case "write protection":
-			return Exception.Error.WRITE_PROTECTION;
-		case "max code size exceeded":
-			return Exception.Error.CODESIZE_EXCEEDED;
-		case "unknown":
-			return Exception.Error.UNKNOWN;
-		default:
-			if(err.startsWith("stack underflow")) {
-				return Exception.Error.STACK_UNDERFLOW;
-			} else if(err.startsWith("stack limit reached")) {
-				return Exception.Error.STACK_OVERFLOW;
-			} else if(err.startsWith("invalid opcode")) {
-				return Exception.Error.INVALID_OPCODE;
-			} else {
-				return Exception.Error.UNKNOWN;
-			}
-		}
-	}
 
 	/**
 	 * A post error is something which is not an immediate pre-condition violation.
+	 * In essence, we have to decide whether or not to include the instruction which
+	 * generated the exception in the trace.
 	 *
 	 * @param err
 	 * @return
 	 * @throws JSONException
 	 */
-	private static boolean isPostError(Trace.Exception.Error err) throws JSONException {
+	private static boolean isPostError(Transaction.Outcome err) throws JSONException {
 		switch(err) {
 		case RETURNDATA_OVERFLOW:
 		case INVALID_JUMPDEST:
@@ -364,6 +434,52 @@ public class Geth extends AbstractExecutable {
 			return true;
 		default:
 			return false;
+		}
+	}
+
+	private final class TraceIterator {
+		private static final boolean debug = false;
+		private final Scanner scanner;
+		private JSONObject next;
+
+		public TraceIterator(Path f) throws IOException, JSONException {
+			this.scanner = new Scanner(f);
+		}
+
+		public JSONObject next() throws JSONException {
+			JSONObject json = peek();
+			next = null;
+			return json;
+		}
+
+		/**
+		 * Peek the next line from the input file. If we have a cached version of it,
+		 * then that is returned directly.
+		 *
+		 * @return
+		 * @throws JSONException
+		 */
+		public JSONObject peek() throws JSONException {
+			if (next == null) {
+				String line = scanner.nextLine();
+				next = new JSONObject(line);
+				// NOTE: revert lines signaled by Geth are a bit inconsistent, so I ignore them.
+				while (next.has("pc") && next.optString("error","").equals("execution reverted")) {
+					if(debug) { System.out.println("DROP: " + line); }
+					line = scanner.nextLine();
+					next = new JSONObject(line);
+				}
+				if(debug) { System.out.println("LINE: " + line); }
+			}
+			return next;
+		}
+
+		public boolean hasNext() {
+			return next != null || scanner.hasNext();
+		}
+
+		public void close() {
+			scanner.close();
 		}
 	}
 
@@ -384,11 +500,17 @@ public class Geth extends AbstractExecutable {
 	private static String createTransactionsFile(Path dir, Transaction tx)
 			throws JSONException, IOException, InterruptedException {
 		JSONObject obj = tx.toJSON();
+		// NOTE: for reasons unknown, Geth calls it "gas" not "gasLimit". Perhaps this
+		// is historical.
+		obj.put("gas",obj.get("gasLimit"));
+		obj.remove("gasLimit");
+		obj.remove("sender"); // unused, as recoverable from signing info.
 		obj.put("v","");
 		obj.put("r","");
 		obj.put("s","");
 		JSONArray json = new JSONArray();
 		json.put(0,obj);
+		//
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile(dir, "txs.json", bytes);
 	}
@@ -396,45 +518,6 @@ public class Geth extends AbstractExecutable {
 	private static Path createTemporaryDirectory() throws IOException {
 		return Files.createTempDirectory("geth");
 	}
-
-	private static String createPreStateFile(Environment env, WorldState pre, Transaction tx)
-			throws JSONException, IOException, InterruptedException {
-		JSONObject json = new JSONObject();
-		json.put("alloc",pre.toJSON());
-		json.put("env", env.toJSON());
-		json.put("coinbase", Hex.toHexString(env.currentCoinbase));
-		json.put("difficulty", Hex.toHexString(env.currentDifficulty));
-		// FIXME: block number is hardcoded because we cannot create a gensis block with
-		// a number > 0.
-		//json.put("number", Hex.toHexString(env.currentNumber));
-		json.put("number", "0x0");
-		json.put("timestamp", Hex.toHexString(env.currentTimestamp));
-		// FIXME: commented out because it appears (for reasons unknown) to affect the
-		// amount of gas reported by the GAS bytecode.
-		json.put("gasLimit", Hex.toHexString(env.currentGasLimit));
-		byte[] bytes = json.toString(2).getBytes();
-		return createTemporaryFile("geth_prestate", ".json", bytes);
-	}
-
-	/**
-     * Write a given string into a temporary file which can then be checked by boogie.
-     *
-     * @param contents
-     * @return
-     */
-    private static String createTemporaryFile(String prefix, String suffix, byte[] contents)
-            throws IOException, InterruptedException {
-        // Create new file
-        File f = File.createTempFile(prefix, suffix);
-        // Open for writing
-        FileOutputStream fout = new FileOutputStream(f);
-        // Write contents to file
-        fout.write(contents);
-        // Done creating file
-        fout.close();
-        //
-        return f.getAbsolutePath();
-    }
 
 	/**
      * Write a given string into a temporary file which can then be checked by boogie.

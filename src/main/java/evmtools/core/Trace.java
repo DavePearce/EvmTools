@@ -37,38 +37,80 @@ import evmtools.util.Hex;
  */
 public class Trace {
 	private final List<Element> elements;
+	/**
+	 * The outcome from the execution.
+	 */
+	private final Transaction.Outcome outcome;
+	/**
+	 * Data returned from the execution in the case of <code>RETURNS</code> or
+	 * <code>REVERTS</code>. Otherwise, it is null.
+	 */
+	private final byte[] data;
 
-	public Trace(List<Element> elements) {
+	public Trace(List<Element> elements, Transaction.Outcome outcome, byte[] data) {
 		this.elements = new ArrayList<>(elements);
+		this.outcome = outcome;
+		this.data = data;
 	}
 
 	public List<Element> getElements() {
 		return elements;
 	}
 
+	public Transaction.Outcome getOutcome() {
+		return outcome;
+	}
+
+	public byte[] getData() {
+		if(outcome == Transaction.Outcome.RETURN || outcome == Transaction.Outcome.REVERT) {
+			return data;
+		} else {
+			throw new IllegalArgumentException("data only for RETURNS or REVERTS");
+		}
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		if(o instanceof Trace) {
 			Trace t = (Trace) o;
-			return elements.equals(t.elements);
+			return elements.equals(t.elements) && outcome.equals(t.outcome) && Arrays.equals(data,t.data);
 		}
 		return false;
 	}
 
 	@Override
 	public int hashCode() {
-		return elements.hashCode();
+		return elements.hashCode() ^ outcome.hashCode() ^ Arrays.hashCode(data);
 	}
-
 
 	@Override
 	public String toString() {
+		return toString(0);
+	}
+
+	public String toString(int depth) {
 		StringBuilder bdr = new StringBuilder();
 		for(Trace.Element e : elements) {
-			bdr.append(e.toString());
+			bdr.append(e.toString(depth));
 			bdr.append("\n");
 		}
+		bdr.append(indent(depth));
+		bdr.append(outcome.toString());
+		if(data != null) {
+			bdr.append("(");
+			bdr.append(Hex.toAbbreviatedHexString(data));
+			bdr.append(")");
+		}
 		return bdr.toString();
+	}
+
+	/**
+	 * Convert this trace into JSON. By default, use abbreviated hex strings.
+	 *
+	 * @return
+	 */
+	public JSONObject toJSON() throws JSONException {
+		return toJSON(true);
 	}
 
 	/**
@@ -78,27 +120,40 @@ public class Trace {
 	 *
 	 * @return
 	 */
-	public JSONArray toJSON(boolean abbreviate) throws JSONException {
-		JSONArray arr = new JSONArray();
+	public JSONObject toJSON(boolean abbreviate) throws JSONException {
+		JSONObject json = new JSONObject();
+		JSONArray steps = new JSONArray();
 		for(int i=0;i!=elements.size();++i) {
-			arr.put(i, elements.get(i).toJSON(abbreviate));
+			steps.put(i, elements.get(i).toJSON(abbreviate));
 		}
-		return arr;
+		json.put("steps",steps);
+		json.put("outcome",outcome.toString());
+		if(data != null) {
+			json.put("data",Hex.toAbbreviatedHexString(data));
+		}
+		return json;
 	}
 
-	public static Trace fromJSON(JSONArray json) throws JSONException {
+	public static Trace fromJSON(JSONObject json) throws JSONException {
+		JSONArray steps = json.getJSONArray("steps");
 		ArrayList<Element> elements = new ArrayList<>();
-		for (int i = 0; i != json.length(); ++i) {
-			Trace.Element ith = Element.fromJSON(json.getJSONObject(i));
+		for (int i = 0; i != steps.length(); ++i) {
+			Trace.Element ith = Element.fromJSON(steps.getJSONObject(i));
 			if(ith != null) {
 				elements.add(ith);
 			}
 		}
-		return new Trace(elements);
+		Transaction.Outcome outcome = Transaction.Outcome.valueOf(json.getString("outcome"));
+		byte[] data = null;
+		if(json.has("data")) {
+			data = Hex.toBytesFromAbbreviated(json.getString("data"));
+		}
+		return new Trace(elements, outcome, data);
 	}
 
 	/**
-	 * Represents a single element of a trace (e.g. a single step of execution).
+	 * Represents a single element of a trace (e.g. a single step of execution or a
+	 * nested execution trace for a contract call).
 	 *
 	 * @author David J. Pearce
 	 *
@@ -111,6 +166,15 @@ public class Trace {
 		 * @return
 		 */
 		public JSONObject toJSON(boolean abbreviate) throws JSONException;
+
+		/**
+		 * Convert a trace element to a string at a given depth. This allows for some
+		 * indentation.
+		 *
+		 * @param depth
+		 * @return
+		 */
+		public String toString(int depth);
 
 		/**
 		 * Convert a <code>JSON</code> object into a <code>Trace</code> object. An
@@ -128,19 +192,7 @@ public class Trace {
 		 * @throws JSONException
 		 */
 		public static Trace.Element fromJSON(JSONObject json) throws JSONException {
-			if (json.has("revert")) {
-				byte[] data = Hex.toBytesFromAbbreviated(json.getString("revert"));
-				return new Trace.Reverts(data);
-			} else if (json.has("error")) {
-				// Parse error message into the appropriate error type. This is not super
-				// pretty.
-				String err = json.getString("error");
-				return new Trace.Exception(Exception.Error.valueOf(err));
-			} else if (json.has("return")) {
-				// Normal return (e.g. STOP or RETURNS)
-				byte[] data = Hex.toBytesFromAbbreviated(json.getString("return"));
-				return new Trace.Returns(data);
-			} else if (json.has("pc")) {
+			if (json.has("pc")) {
 				int pc = json.getInt("pc");
 				int op = json.getInt("op");
 				int depth = json.getInt("depth");
@@ -157,6 +209,8 @@ public class Trace {
 				}
 				//
 				return new Trace.Step(pc, op, depth, gas, stackSize, stack, memory, storage);
+			} else if(json.has("steps")) {
+				return new SubTrace(Trace.fromJSON(json));
 			} else {
 				throw new IllegalArgumentException("unknown trace record: " + json.toString());
 			}
@@ -207,7 +261,7 @@ public class Trace {
 		}
 
 		@Override
-		public String toString() {
+		public String toString(int depth) {
 			String s = toStackString(stackSize,stack);
 			String st = storage.toString();
 			String m = Hex.toAbbreviatedHexString(memory);
@@ -274,137 +328,44 @@ public class Trace {
 	}
 
 	/**
-	 * Represents the successfull completion of the outermost (externally owned)
-	 * contract call.
+	 * This is just a wrapper around Trace.
 	 *
 	 * @author David J. Pearce
 	 *
 	 */
-	public static class Returns implements Element {
-		public final byte[] data;
+	public static class SubTrace implements Element {
+		private final Trace trace;
 
-		public Returns(byte[] data) {
-			this.data = data;
+		public SubTrace(Trace trace) {
+			this.trace = trace;
 		}
 
-		@Override
-		public String toString() {
-			String o = Hex.toAbbreviatedHexString(data);
-			return String.format("return(%s)\n",o);
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			return o instanceof Returns && Arrays.equals(data,((Returns)o).data);
-		}
-
-		@Override
-		public int hashCode() {
-			return Arrays.hashCode(data);
-		}
-
-		@Override
-		public JSONObject toJSON(boolean abbreviate) throws JSONException {
-			JSONObject json = new JSONObject();
-			json.put("return",Hex.toAbbreviatedHexString(data));
-			return json;
-		}
-	}
-
-	/**
-	 * Indicates a revert has occurred during execution.
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public static class Reverts implements Element {
-		public final byte[] data;
-
-		public Reverts(byte[] data) {
-			this.data = data;
-		}
-
-		@Override
-		public String toString() {
-			String o = Hex.toAbbreviatedHexString(data);
-			return String.format("revert(%s)\n",o);
+		public Trace getTrace() {
+			return trace;
 		}
 
 		@Override
 		public boolean equals(Object o) {
-			return o instanceof Reverts && Arrays.equals(data,((Reverts)o).data);
-		}
-
-		@Override
-		public int hashCode() {
-			return Arrays.hashCode(data);
-		}
-
-		@Override
-		public JSONObject toJSON(boolean abbreviate) throws JSONException {
-			JSONObject json = new JSONObject();
-			json.put("revert",Hex.toAbbreviatedHexString(data));
-			return json;
-		}
-	}
-
-	/**
-	 * Indicates an internal exception has arisen during exection (e.g. stack
-	 * underflow, etc).
-	 *
-	 * @author David J. Pearce
-	 *
-	 */
-	public static class Exception implements Element {
-
-		public enum Error {
-			UNKNOWN,
-			INSUFFICIENT_GAS,
-			INSUFFICIENT_FUNDS,
-			INVALID_OPCODE,
-			INVALID_EOF,
-			STACK_UNDERFLOW,
-			STACK_OVERFLOW,
-			MEMORY_OVERFLOW,
-			RETURNDATA_OVERFLOW,
-			NONCE_OVERFLOW,
-			INVALID_JUMPDEST,
-			CALLDEPTH_EXCEEDED,
-			CODESIZE_EXCEEDED,
-			ACCOUNT_COLLISION,
-			WRITE_PROTECTION;
-		}
-
-		private final Error code;
-
-		public Exception(Error code) {
-			this.code = code;
-		}
-
-		@Override
-		public String toString() {
-			return "exception(" + code.toString() + ")\n";
-		}
-
-		@Override
-		public boolean equals(Object o) {
-			if (o instanceof Exception) {
-				Exception e = (Exception) o;
-				return code.equals(e.code);
+			if(o instanceof SubTrace) {
+				SubTrace st = (SubTrace) o;
+				return trace.equals(st.trace);
 			}
 			return false;
 		}
 
 		@Override
 		public int hashCode() {
-			return code.hashCode();
+			return trace.hashCode();
 		}
 
 		@Override
 		public JSONObject toJSON(boolean abbreviate) throws JSONException {
-			JSONObject json = new JSONObject();
-			json.put("error",code.toString());
-			return json;
+			return trace.toJSON(abbreviate);
+		}
+
+		@Override
+		public String toString(int depth) {
+			return trace.toString(depth+1);
 		}
 	}
 

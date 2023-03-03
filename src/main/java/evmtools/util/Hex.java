@@ -201,10 +201,7 @@ public class Hex {
 	 * @return
 	 */
 	public static String toHexString(BigInteger i) {
-		String s = i.toString(16);
-		// NOTE: this just ensures the length of the string is even, as Geth appears to
-		// require this.
-		return "0x" + s;
+		return "0x" + i.toString(16);
 	}
 
 	/**
