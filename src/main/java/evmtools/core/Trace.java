@@ -96,7 +96,7 @@ public class Trace {
 		}
 		bdr.append(indent(depth));
 		bdr.append(outcome.toString());
-		if(data != null) {
+		if(data.length > 0) {
 			bdr.append("(");
 			bdr.append(Hex.toAbbreviatedHexString(data));
 			bdr.append(")");
@@ -128,9 +128,7 @@ public class Trace {
 		}
 		json.put("steps",steps);
 		json.put("outcome",outcome.toString());
-		if(data != null) {
-			json.put("data",Hex.toAbbreviatedHexString(data));
-		}
+		json.put("data",Hex.toAbbreviatedHexString(data));
 		return json;
 	}
 
@@ -144,10 +142,7 @@ public class Trace {
 			}
 		}
 		Transaction.Outcome outcome = Transaction.Outcome.valueOf(json.getString("outcome"));
-		byte[] data = null;
-		if(json.has("data")) {
-			data = Hex.toBytesFromAbbreviated(json.getString("data"));
-		}
+		byte[] data = Hex.toBytesFromAbbreviated(json.getString("data"));
 		return new Trace(elements, outcome, data);
 	}
 

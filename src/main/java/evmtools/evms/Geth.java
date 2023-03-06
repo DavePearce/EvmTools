@@ -254,7 +254,7 @@ public class Geth extends AbstractExecutable {
 		// Exception terminator
 		Transaction.Outcome outcome = parseError(json.getString("error"));
 		// Extract return bytes (if any)
-		byte[] data = (outcome == Transaction.Outcome.REVERT) ? Hex.toBytes(json.getString("output")) : null;
+		byte[] data = (outcome == Transaction.Outcome.REVERT) ? Hex.toBytes(json.getString("output")) : new byte[0];
 		//
 		return new Trace(elements, outcome, data);
 	}
