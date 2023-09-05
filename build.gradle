@@ -35,7 +35,7 @@ repositories {
 }
 
 group = 'org.whiley'
-version = '0.3.26'
+version = '0.3.27'
 
 java {
     withJavadocJar()
@@ -72,8 +72,8 @@ task gen(type: JavaExec) {
     jvmArgs '-Xmx4G','-Xss4m'
     // arguments to pass to the application
     args '-incremental'
-    args '-fork'
-    args 'Berlin'
+    args '-forks'
+    args 'Berlin,London'
     args '-dir'
     args 'fixtures'
     args '-out'
