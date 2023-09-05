@@ -20,6 +20,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -131,7 +132,7 @@ public class Main {
 			new Option("dir", true, "Read all state tests from given dir"),
 			new Option("out", true, "Directory to write generate files"),
 			new Option("gzip", false, "Compress generated files using gzip"),
-			new Option("fork", true, "Restrict to a particular fork (e.g. 'Berlin')."),
+			new Option("forks", true, "Restrict to a set of (comma separated) fork (e.g. 'Berlin,London')."),
 			new Option("prettify", false, "Output \"pretty\" json"),
 			new Option("abbreviate", true, "Enable/Disable hex string abbreviation (default is enabled)"),
 			new Option("excludes", true, "Don't include tests matching globs in this file."),
@@ -221,9 +222,10 @@ public class Main {
 			if (cmd.hasOption("abbreviate")) {
 				m = m.abbreviate(Boolean.parseBoolean(cmd.getOptionValue("abbreviate")));
 			}
-			if (cmd.hasOption("fork")) {
-				String fork = cmd.getOptionValue("fork");
-				m.filter((f, i) -> f.equals(fork));
+			if (cmd.hasOption("forks")) {
+				String forks = cmd.getOptionValue("forks");
+				List<String> fs = Arrays.asList(forks.split(","));
+				m.filter((f, i) -> fs.contains(f));
 			}
 			int len = m.run();
 			out.close();
