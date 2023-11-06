@@ -36,7 +36,7 @@ import evmtools.core.*;
 import evmtools.evms.Geth;
 
 /**
- * A test runner for executing the <code>GeneralStateTests</code> provided as
+ * A test runner for executing the <code>"GeneralStateTests</code> provided as
  * part of the Ethereum Reference tests (see
  * <a href="https://github.com/ethereum/tests/">here</a>). The test runner works
  * by combining two pieces of information for each tests:
@@ -76,19 +76,19 @@ public class GeneralStateTests {
 	public final static Path FIXTURES_DIR = Path.of("fixtures/GeneralStateTests");
 
 	public final static String[] INCLUDES = {
-			//"**/*.json"
-			"stExample/*.json",
-			"stStaticCall/*.json",
-			"stReturnDataTest/*.json",
-			"stWalletTest/walletConstructionOOG.json",
-			"stRevertTest/*.json",
-			"stMemoryTest/*.json",
-			"stSLoadTest/*.json",
-			"stSStoreTest/*.json",
-			"stCreateTest/*.json",
-			"VMTests/vmArithmeticTest/*.json",
-			"VMTests/vmBitwiseLogicOperation/*.json",
-			"VMTests/vmIOAndFlowOperations/*.json"
+			"**/*.json", // everything.
+//			"stExample/*.json",",
+//			"stStaticCall/*.json",",
+//			"stReturnDataTest/*.json",",
+//			"stWalletTest/walletConstructionOOG.json",",
+//			"stRevertTest/*.json",",
+//			"stMemoryTest/*.json",",
+//			"stSLoadTest/*.json",",
+//			"stSStoreTest/*.json",",
+//			"stCreateTest/*.json",",
+//			"VMTests/vmArithmeticTest/*.json",",
+//			"VMTests/vmBitwiseLogicOperation/*.json",",
+//			"VMTests/vmIOAndFlowOperations/*.json","
 	};
 
 	public final static String[] EXCLUDES = {
@@ -99,7 +99,7 @@ public class GeneralStateTests {
 	@ParameterizedTest
 	@MethodSource("allTestFiles")
 	public void tests(StateTest.Instance instance) throws IOException, JSONException {
-		//runTest(instance.getName(), instance.getEnvironment(), instance.getWorldState(), instance.instantiate(), instance.outcome());
+		runTest(instance.getName(), instance.getEnvironment(), instance.getWorldState(), instance.instantiate(), instance.outcome());
 	}
 
 	// Here we enumerate all available test cases.
