@@ -110,7 +110,7 @@ public class Geth extends AbstractExecutable {
 		String txsFile = null;
 		try {
 			tempDir = createTemporaryDirectory();
-			envFile = createEnvFile(tempDir,env);
+			envFile = createEnvFile(tempDir,env,fork);
 			allocFile = createAllocFile(tempDir,pre);
 			txsFile = createTransactionsFile(tempDir,tx);
 			// Build up the command
@@ -492,9 +492,12 @@ public class Geth extends AbstractExecutable {
 		return createTemporaryFile(dir, "alloc.json", bytes);
 	}
 
-	private static String createEnvFile(Path dir, Environment env)
+	private static String createEnvFile(Path dir, Environment env, String fork)
 			throws JSONException, IOException, InterruptedException {
 		JSONObject json = env.toJSON();
+		if(isPostMerge(fork)) {
+			json.remove("currentDifficulty");
+		}
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile(dir, "env.json", bytes);
 	}
@@ -519,6 +522,18 @@ public class Geth extends AbstractExecutable {
 
 	private static Path createTemporaryDirectory() throws IOException {
 		return Files.createTempDirectory("geth");
+	}
+
+	public static boolean isPostMerge(String fork) {
+		switch(fork.toUpperCase()) {
+		case "BERLIN":
+		case "LONDON":
+			return false;
+		case "SHANGHAI":
+			return true;
+		default:
+			throw new IllegalArgumentException("unknown fork encountered \"" + fork + "\"");
+		}
 	}
 
 	/**
