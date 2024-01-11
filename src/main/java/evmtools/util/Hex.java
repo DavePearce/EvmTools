@@ -197,7 +197,7 @@ public class Hex {
 	/**
 	 * Convert a biginteger into a hexadecimal string.
 	 *
-	 * @param bytes
+	 * @param i
 	 * @return
 	 */
 	public static String toHexString(BigInteger i) {
@@ -207,7 +207,8 @@ public class Hex {
 	/**
 	 * Convert a biginteger into a hexadecimal string which is of a certain length.
 	 *
-	 * @param bytes
+	 * @param i
+	 * @param len
 	 * @return
 	 */
 	public static String toHexString(BigInteger i, int len) {

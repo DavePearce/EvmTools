@@ -116,7 +116,7 @@ public class Trace {
 	/**
 	 * Convert this trace into JSON.
 	 *
-	 * @param Enable the use of abbreviated hex strings (recommended).
+	 * @param abbreviate Enable the use of abbreviated hex strings (recommended).
 	 *
 	 * @return
 	 */
@@ -157,7 +157,7 @@ public class Trace {
 		/**
 		 * Convert a trace element into JSON.
 		 *
-		 * @param Enable the use of abbreviated hex strings.
+		 * @param abbreviate Enable the use of abbreviated hex strings.
 		 * @return
 		 */
 		public JSONObject toJSON(boolean abbreviate) throws JSONException;
@@ -180,7 +180,7 @@ public class Trace {
 		 * </pre>
 		 *
 		 * See EIP-3155 for more information on the format used <a href=
-		 * "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3155.md">here</here>.
+		 * "https://github.com/ethereum/EIPs/blob/master/EIPS/eip-3155.md">here</a>.
 		 *
 		 * @param json
 		 * @return

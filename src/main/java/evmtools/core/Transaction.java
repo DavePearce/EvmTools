@@ -242,7 +242,7 @@ public abstract class Transaction {
 	/**
 	 * Set specific call data for this transaction.
 	 *
-	 * @param value
+	 * @param data
 	 * @return
 	 */
 	public Transaction setData(byte[] data) {
@@ -354,9 +354,7 @@ public abstract class Transaction {
 		 * Instantiate a transaction with a given set of _indexes_. That is, indices
 		 * which refer to the array of available values for each item.
 		 *
-		 * @param data
-		 * @param gas
-		 * @param value
+		 * @param indices
 		 * @return
 		 */
 		public Transaction instantiate(Map<String, Integer> indices) {
@@ -370,7 +368,7 @@ public abstract class Transaction {
 		 * Parse transaction template information from a JSON input file, as used by
 		 * state tests found in the Ethereum Reference Tests.
 		 *
-		 * @param tx
+		 * @param json
 		 * @return
 		 */
 		public static Template fromJSON(JSONObject json) throws JSONException {

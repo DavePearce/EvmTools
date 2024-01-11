@@ -89,7 +89,7 @@ public class TraceTest {
 	/**
 	 * Convert this test into a JSON file.
 	 *
-	 * @param Enable the use of abbreviated hex strings (recommended).
+	 * @param abbreviate Enable the use of abbreviated hex strings (recommended).
 	 *
 	 * @return
 	 */
@@ -169,7 +169,7 @@ public class TraceTest {
 		/**
 		 * Convert this trace test into JSON.
 		 *
-		 * @param Enable the use of abbreviated hex strings (recommended).
+		 * @param abbreviate Enable the use of abbreviated hex strings (recommended).
 		 *
 		 * @return
 		 */
