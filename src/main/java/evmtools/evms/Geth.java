@@ -308,6 +308,8 @@ public class Geth extends AbstractExecutable {
 			return Transaction.Outcome.CODESIZE_EXCEEDED;
 		case "contract creation code storage out of gas":
 			return Transaction.Outcome.CREATION_OUT_OF_GAS;
+		case "must not begin with 0xef":
+			return Transaction.Outcome.INVALID_EOF;
 		default:
 			if(err.startsWith("stack underflow")) {
 				return Transaction.Outcome.STACK_UNDERFLOW;

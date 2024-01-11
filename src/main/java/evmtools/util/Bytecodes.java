@@ -71,6 +71,7 @@ public class Bytecodes {
 	public static final int GASLIMIT = 0x45;
 	public static final int CHAINID = 0x46;
 	public static final int SELFBALANCE = 0x47;
+	public static final int BASEFEE = 0x48;
 	// 50s: Stack, Memory Storage and Flow Operations
 	public static final int POP = 0x50;
 	public static final int MLOAD = 0x51;
@@ -84,6 +85,7 @@ public class Bytecodes {
 	public static final int MSIZE = 0x59;
 	public static final int GAS = 0x5a;
 	public static final int JUMPDEST = 0x5b;
+	public static final int PUSH0 = 0x5f;
 	// 60s & 70s: Push Operations
 	public static final int PUSH1 = 0x60;
 	public static final int PUSH2 = 0x61;
@@ -228,6 +230,7 @@ public class Bytecodes {
 		opcodes[GASLIMIT] = "GASLIMIT";
 		opcodes[CHAINID] = "CHAINID";
 		opcodes[SELFBALANCE] = "SELFBALANCE";
+		opcodes[BASEFEE] = "BASEFEE";
 		// 50s: Stack, Memory Storage and Flow Operations
 		opcodes[POP] = "POP";
 		opcodes[MLOAD] = "MLOAD";
@@ -241,6 +244,7 @@ public class Bytecodes {
 		opcodes[MSIZE] = "MSIZE";
 		opcodes[GAS] = "GAS";
 		opcodes[JUMPDEST] = "JUMPDEST";
+		opcodes[PUSH0] = "PUSH0";
 		// 60s & 70s: Push Operations
 		opcodes[PUSH1] = "PUSH1";
 		opcodes[PUSH2] = "PUSH2";
@@ -335,7 +339,7 @@ public class Bytecodes {
 	 */
 	public static String toString(int opcode) {
 		if(opcodes[opcode] == null) {
-			return "???";
+			return String.format("?[0x%x]",opcode);
 		} else {
 			return opcodes[opcode];
 		}
