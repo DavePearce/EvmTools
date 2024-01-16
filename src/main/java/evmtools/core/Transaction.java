@@ -379,7 +379,7 @@ public abstract class Transaction {
 			BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 			BigInteger[] gasLimits = parseValueArray(json.getJSONArray("gasLimit"));
 			BigInteger[] values = parseValueArray(json.getJSONArray("value"));
-			byte[][] datas = parseDataArray(json.getJSONArray("data"));
+			byte[][] datas = parseDataArray(json.getJSONArray("data"));			
 			//
 			if (json.length() <= 8 && json.has("gasPrice")) {
 				BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice", "0x0"));

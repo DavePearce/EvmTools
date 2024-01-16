@@ -73,7 +73,7 @@ task gen(type: JavaExec) {
     // arguments to pass to the application
     args '-incremental'
     args '-forks'
-    args 'Berlin,London,Shanghai'
+    args 'Berlin,London,Shanghai,Cancun'
     args '-dir'
     args 'fixtures'
     args '-out'

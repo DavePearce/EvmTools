@@ -103,7 +103,7 @@ public class Geth extends AbstractExecutable {
 		}
 	}
 
-	public Result t8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {
+	public Result t8n(String fork, Environment env, WorldState pre, Transaction tx) throws JSONException, IOException {		
 		Path tempDir = null;
 		String envFile = null;
 		String allocFile = null;
@@ -498,6 +498,8 @@ public class Geth extends AbstractExecutable {
 		if(isPostMerge(fork)) {
 			json.remove("currentDifficulty");
 		}
+		// FIXME: following line is something of a hack :)
+		json.put("parentBeaconBlockRoot", "0x0000000000000000000000000000000000000000000000000000000000000000");
 		byte[] bytes = json.toString(2).getBytes();
 		return createTemporaryFile(dir, "env.json", bytes);
 	}
@@ -530,6 +532,7 @@ public class Geth extends AbstractExecutable {
 		case "LONDON":
 			return false;
 		case "SHANGHAI":
+		case "CANCUN":
 			return true;
 		default:
 			throw new IllegalArgumentException("unknown fork encountered \"" + fork + "\"");
