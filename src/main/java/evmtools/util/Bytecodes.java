@@ -85,6 +85,9 @@ public class Bytecodes {
 	public static final int MSIZE = 0x59;
 	public static final int GAS = 0x5a;
 	public static final int JUMPDEST = 0x5b;
+	public static final int TSTORE = 0x5c;
+	public static final int TLOAD = 0x5d;
+	public static final int MCOPY = 0x5e;
 	public static final int PUSH0 = 0x5f;
 	// 60s & 70s: Push Operations
 	public static final int PUSH1 = 0x60;
@@ -244,6 +247,9 @@ public class Bytecodes {
 		opcodes[MSIZE] = "MSIZE";
 		opcodes[GAS] = "GAS";
 		opcodes[JUMPDEST] = "JUMPDEST";
+		opcodes[TLOAD] = "TLOAD";
+		opcodes[TSTORE] = "TSTORE";
+		opcodes[MCOPY] = "MCOPY";
 		opcodes[PUSH0] = "PUSH0";
 		// 60s & 70s: Push Operations
 		opcodes[PUSH1] = "PUSH1";
