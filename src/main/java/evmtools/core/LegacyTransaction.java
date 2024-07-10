@@ -60,7 +60,7 @@ public class LegacyTransaction extends Transaction {
 
 	@Override
 	public boolean equals(Object o) {
-		if (o instanceof LegacyTransaction) {
+		if (o != null && o.getClass() == LegacyTransaction.class) {
 			LegacyTransaction t = (LegacyTransaction) o;
 			return super.equals(t) && gasPrice.equals(t.gasPrice);
 		}

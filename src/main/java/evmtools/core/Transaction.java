@@ -22,6 +22,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import static evmtools.core.AccessListTransaction.AccessType;
 import evmtools.util.Hex;
 
 public abstract class Transaction {
@@ -320,6 +321,9 @@ public abstract class Transaction {
 		if(json.length() <= 8 && json.has("gasPrice")) {
 			BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
 			return new LegacyTransaction(sender, secret, to, nonce, gasLimit, value, data, gasPrice);
+		} else if(json.length() <= 9 && json.has("gasPrice") && json.has("accessLists")) {
+			// EIP2930 transaction
+			throw new IllegalArgumentException("todo");
 		} else {
 			throw new IllegalArgumentException("unsupported transaction type (" + json + ")");
 		}
@@ -340,14 +344,16 @@ public abstract class Transaction {
 		private final BigInteger[] gasLimits;
 		private final BigInteger[] values;
 		private final byte[][] datas;
+		private final AccessType[][] accessLists;
 
-		public Template(Transaction template, BigInteger[] gasLimits, BigInteger[] values, byte[][] datas) {
+		public Template(Transaction template, BigInteger[] gasLimits, BigInteger[] values, byte[][] datas, AccessType[][] accessLists) {
 			// Create the "templated" transaction which has empty slots for the
 			// parameterised values.
 			this.template = template;
 			this.gasLimits = gasLimits;
 			this.values = values;
 			this.datas = datas;
+			this.accessLists = accessLists;
 		}
 
 		/**
@@ -384,9 +390,17 @@ public abstract class Transaction {
 			if (json.length() <= 8 && json.has("gasPrice")) {
 				BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice", "0x0"));
 				LegacyTransaction tx = new LegacyTransaction(sender, secretKey, to, nonce, null, null, null, gasPrice);
-				return new Template(tx, gasLimits, values, datas);
+				return new Template(tx, gasLimits, values, datas, null);
+			} else if(json.length() <= 9 && json.has("gasPrice") && json.has("accessLists")) {
+				// EIP2930 transaction
+				BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice", "0x0"));
+				AccessType[][] accessLists = parseAccessListsArray(json.getJSONArray("accessLists")); 
+				AccessListTransaction tx = new AccessListTransaction(sender, secretKey, to, nonce, null, null, null, gasPrice, null);
+				return new Template(tx, gasLimits, values, datas, accessLists);
+			} else if(json.has("maxPriorityFeePerGas")) {
+				throw new IllegalArgumentException("unsupported EIP1559 transaction template");
 			} else {
-				throw new IllegalArgumentException("unsupported transaction template");
+				throw new IllegalArgumentException("unsupported transaction template (" + json +")");
 			}
 		}
 
@@ -408,5 +422,18 @@ public abstract class Transaction {
 			values[i] = Hex.toBigInt(json.getString(i));
 		}
 		return values;
+	}
+	
+	public static AccessType[][] parseAccessListsArray(JSONArray json) throws JSONException  {
+		AccessType[][] accessLists = new AccessType[json.length()][];
+		for(int i=0;i!=json.length();++i) {
+			JSONArray ith = json.optJSONArray(i);
+			if(ith != null) {
+				accessLists[i] = AccessListTransaction.accessListsFromJSON(ith);
+			} else {
+				accessLists[i] = new AccessType[0];
+			}
+		}
+		return accessLists;
 	}
 }
