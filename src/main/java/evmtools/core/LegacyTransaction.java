@@ -25,11 +25,11 @@ public class LegacyTransaction extends Transaction {
 	/**
 	 * Price per unit of Gas (in Wei).
 	 */
-	private final BigInteger gasPrice;
+	private final BigInteger gasPrice;	
 
 	public LegacyTransaction(BigInteger sender, BigInteger secretKey, BigInteger to, BigInteger nonce, BigInteger gasLimit, BigInteger value,
-			byte[] data, BigInteger gasPrice) {
-		super(sender, secretKey, to, nonce, gasLimit, value, data);
+			byte[] data, BigInteger gasPrice, Access[] accessList) {
+		super(sender, secretKey, to, nonce, gasLimit, value, data, accessList);
 		this.gasPrice = gasPrice;
 	}
 
@@ -39,17 +39,18 @@ public class LegacyTransaction extends Transaction {
 	 */
 	public LegacyTransaction(LegacyTransaction tx) {
 		super(tx);
-		this.gasPrice = tx.gasPrice;
+		this.gasPrice = tx.gasPrice;		
 	}
 
 	public BigInteger gasPrice() {
 		return gasPrice;
 	}
 
+	
 	@Override
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = super.toJSON();
-		json.put("gasPrice",Hex.toHexString(gasPrice));
+		json.put("gasPrice",Hex.toHexString(gasPrice));		
 		return json;
 	}
 
