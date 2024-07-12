@@ -127,6 +127,11 @@ public abstract class Transaction {
 	/**
 	 * Address of the sender making this transaction.
 	 */
+	private BigInteger chainID;
+	
+	/**
+	 * Address of the sender making this transaction.
+	 */
 	private BigInteger sender;
 	/**
 	 * Secret key of sender (this is needed to sign the transaction later on).
@@ -164,6 +169,7 @@ public abstract class Transaction {
 	 */
 	public Transaction(BigInteger sender, BigInteger secretKey, BigInteger to, BigInteger nonce,
 			BigInteger gasLimit, BigInteger value, byte[] data, Access[] accessList) {
+		this.chainID = BigInteger.ONE;
 		this.sender = sender;
 		this.secretKey = secretKey;
 		this.to = to;
@@ -179,6 +185,7 @@ public abstract class Transaction {
 	 * @param tx
 	 */
 	public Transaction(Transaction tx) {
+		this.chainID = tx.chainID;
 		this.sender = tx.sender;
 		this.secretKey = tx.secretKey;
 		this.to = tx.to;
@@ -189,6 +196,10 @@ public abstract class Transaction {
 		this.accessList = tx.accessList;
 	}
 
+	public BigInteger chainID() {
+		return chainID;
+	}
+	
 	public BigInteger sender() {
 		return sender;
 	}
@@ -302,8 +313,9 @@ public abstract class Transaction {
 	public boolean equals(Object o) {
 		if (o instanceof Transaction) {
 			Transaction t = (Transaction) o;
-			return sender.equals(t.sender) && Objects.equals(to, t.to) && nonce.equals(t.nonce) && value.equals(t.value)
-					&& Arrays.equals(data, t.data) && gasLimit.equals(t.gasLimit);
+			return chainID.equals(t.chainID) && sender.equals(t.sender) && Objects.equals(to, t.to)
+					&& nonce.equals(t.nonce) && value.equals(t.value) && Arrays.equals(data, t.data)
+					&& gasLimit.equals(t.gasLimit);
 		}
 		return false;
 	}
@@ -316,6 +328,7 @@ public abstract class Transaction {
 	 */
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
+		json.put("chainId", Hex.toHexString(chainID));		
 		json.put("sender",Hex.toHexString(sender,40));
 		json.put("secretKey",Hex.toHexString(secretKey,64));
 		if(to != null) {
@@ -342,15 +355,18 @@ public abstract class Transaction {
 		BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 		BigInteger value = Hex.toBigInt(json.getString("value"));
 		byte[] data = Hex.toBytes(json.getString("input"));
+		Access[] accessList = null;
+		if(json.has("accessList")) {
+			accessList = LegacyTransaction.accessListFromJSON(json.getJSONArray("accessList"));
+		}
 		// Decide what type of transaction we have
-		if(json.length() <= 8 && json.has("gasPrice")) {
+		if(json.has("gasPrice")) {
 			BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
-			return new LegacyTransaction(sender, secret, to, nonce, gasLimit, value, data, gasPrice, null);
-		} else if(json.length() <= 9 && json.has("gasPrice") && json.has("accessList")) {
-			// EIP2930 transaction
-			BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));
-			Access[] accessList = LegacyTransaction.accessListFromJSON(json.getJSONArray("accessList"));
-			return new LegacyTransaction(sender, secret, to, nonce, gasLimit, value, data, gasPrice, accessList);
+			return new LegacyTransaction(sender, secret, to, nonce, gasLimit, value, data, accessList, gasPrice);
+		} else if (json.has("maxPriorityFeePerGas") && json.has("maxFeePerGas")) {
+			BigInteger maxPriorityFeePerGas = Hex.toBigInt(json.getString("maxPriorityFeePerGas"));
+			BigInteger maxFeePerGas = Hex.toBigInt(json.getString("maxFeePerGas"));
+			return new Eip1559Transaction(sender, secret, to, nonce, gasLimit, value, data, accessList, maxPriorityFeePerGas, maxFeePerGas);
 		} else {
 			throw new IllegalArgumentException("unsupported transaction type (" + json + ")");
 		}
@@ -480,20 +496,23 @@ public abstract class Transaction {
 			BigInteger nonce = Hex.toBigInt(json.getString("nonce"));
 			BigInteger[] gasLimits = parseValueArray(json.getJSONArray("gasLimit"));
 			BigInteger[] values = parseValueArray(json.getJSONArray("value"));
-			byte[][] datas = parseDataArray(json.getJSONArray("data"));			
+			byte[][] datas = parseDataArray(json.getJSONArray("data"));
+			Access[][] accessLists = null;
+			// Check for optional access list
+			if(json.has("accessLists")) {
+				accessLists = parseAccessListsArray(json.getJSONArray("accessLists"));
+			}
 			//
-			if (json.length() <= 8 && json.has("gasPrice")) {
-				BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice", "0x0"));
-				LegacyTransaction tx = new LegacyTransaction(sender, secretKey, to, nonce, null, null, null, gasPrice, null);
-				return new Template(tx, gasLimits, values, datas, null);
-			} else if(json.length() <= 9 && json.has("gasPrice") && json.has("accessLists")) {
+			if(json.has("gasPrice")) {
 				// EIP2930 transaction
-				BigInteger gasPrice = Hex.toBigInt(json.optString("gasPrice", "0x0"));
-				Access[][] accessLists = parseAccessListsArray(json.getJSONArray("accessLists")); 
-				LegacyTransaction tx = new LegacyTransaction(sender, secretKey, to, nonce, null, null, null, gasPrice, null);
+				BigInteger gasPrice = Hex.toBigInt(json.getString("gasPrice"));				
+				LegacyTransaction tx = new LegacyTransaction(sender, secretKey, to, nonce, null, null, null, null, gasPrice);
 				return new Template(tx, gasLimits, values, datas, accessLists);
-			} else if(json.has("maxPriorityFeePerGas")) {
-				throw new IllegalArgumentException("unsupported EIP1559 transaction template");
+			} else if(json.has("maxPriorityFeePerGas") && json.has("maxFeePerGas")) {
+				BigInteger maxPriorityFeePerGas = Hex.toBigInt(json.getString("maxPriorityFeePerGas"));
+				BigInteger maxFeePerGas = Hex.toBigInt(json.getString("maxFeePerGas"));
+				Eip1559Transaction tx = new Eip1559Transaction(sender, secretKey, to, nonce, null, null, null, null, maxPriorityFeePerGas, maxFeePerGas);
+				return new Template(tx, gasLimits, values, datas, accessLists);
 			} else {
 				throw new IllegalArgumentException("unsupported transaction template (" + json +")");
 			}

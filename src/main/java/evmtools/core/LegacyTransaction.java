@@ -28,7 +28,7 @@ public class LegacyTransaction extends Transaction {
 	private final BigInteger gasPrice;	
 
 	public LegacyTransaction(BigInteger sender, BigInteger secretKey, BigInteger to, BigInteger nonce, BigInteger gasLimit, BigInteger value,
-			byte[] data, BigInteger gasPrice, Access[] accessList) {
+			byte[] data, Access[] accessList, BigInteger gasPrice) {
 		super(sender, secretKey, to, nonce, gasLimit, value, data, accessList);
 		this.gasPrice = gasPrice;
 	}
@@ -51,6 +51,9 @@ public class LegacyTransaction extends Transaction {
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = super.toJSON();
 		json.put("gasPrice",Hex.toHexString(gasPrice));		
+		if(this.accessList() != null) {
+			json.put("type", "0x1");
+		}
 		return json;
 	}
 
