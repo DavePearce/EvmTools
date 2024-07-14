@@ -122,6 +122,10 @@ public abstract class Transaction {
 		 * Attempt to modify state from a static call.
 		 */
 		WRITE_PROTECTION,
+		/**
+		 * Indicates a transaction which exceeded the block gas limit.
+		 */
+		GAS_LIMIT_REACHED,
 	}
 
 	/**
