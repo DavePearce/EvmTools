@@ -60,15 +60,15 @@ public class Environment {
 
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
-		json.put("currentCoinbase", Hex.toHexString(currentCoinbase));
+		json.put("currentCoinbase", Hex.toHexString(currentCoinbase,40));
 		json.put("currentDifficulty", Hex.toHexString(currentDifficulty));
 		json.put("currentGasLimit", Hex.toHexString(currentGasLimit));
 		json.put("currentNumber", Hex.toHexString(currentNumber));
 		json.put("currentTimestamp", Hex.toHexString(currentTimestamp));
 		json.put("currentBaseFee", Hex.toHexString(currentBaseFee));
 		json.put("currentRandom", Hex.toHexString(currentRandom));
-		json.put("currentWithdrawalsRoot", Hex.toHexString(currentWithdrawalsRoot));
-		json.put("currentBeaconRoot", Hex.toHexString(currentBeaconRoot));
+		json.put("currentWithdrawalsRoot", Hex.toHexString(currentWithdrawalsRoot,40));
+		json.put("currentBeaconRoot", Hex.toHexString(currentBeaconRoot,40));
 		json.put("withdrawals", new JSONArray()); // FIXME: this looks wrong.
 		json.put("previousHash", Hex.toHexString(previousHash));
 		if(!blockHashes.isEmpty()) {

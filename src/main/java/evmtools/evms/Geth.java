@@ -193,6 +193,10 @@ public class Geth extends AbstractExecutable {
 				throw new RuntimeException(e);
 			}
 		});
+		// Sanity check we found something.
+		if(tr.isEmpty()) {
+			tr.add(new Result(Transaction.Outcome.UNKNOWN, new byte[0], null));
+		}
 		return tr.get(0);
 	}
 

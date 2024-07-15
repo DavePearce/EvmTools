@@ -280,7 +280,7 @@ public abstract class Transaction {
 	/**
 	 * Set the access list for this transaction.
 	 *
-	 * @param data
+	 * @param accessList
 	 * @return
 	 */
 	public Transaction setAccessList(Access[] accessList) {
@@ -481,8 +481,12 @@ public abstract class Transaction {
 			BigInteger g = gasLimits[indices.get("gas")];
 			BigInteger v = values[indices.get("value")];
 			byte[] d = datas[indices.get("data")];
-			Access[] al = accessLists[indices.get("data")];
-			return template.clone().setGasLimit(g).setValue(v).setData(d).setAccessList(al);
+			Transaction t = template.clone().setGasLimit(g).setValue(v).setData(d);
+			if(accessLists != null) {
+				Access[] al = accessLists[indices.get("data")];
+				t = t.setAccessList(al);
+			}
+			return t;
 		}
 
 		/**
