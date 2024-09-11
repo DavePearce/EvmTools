@@ -288,7 +288,7 @@ public class StateTest {
 			HashMap<String, Integer> map = new HashMap<>();
 			map.put("data", is.getInt("data"));
 			map.put("gas", is.getInt("gas"));
-			map.put("value", is.getInt("value"));
+			map.put("value", is.getInt("value"));			
 			Transaction.Outcome outcome;
 			if (json.has("expectException")) {
 				String except = json.getString("expectException");

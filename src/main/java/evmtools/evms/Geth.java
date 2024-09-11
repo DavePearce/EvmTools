@@ -193,6 +193,10 @@ public class Geth extends AbstractExecutable {
 				throw new RuntimeException(e);
 			}
 		});
+		// Sanity check we found something.
+		if(tr.isEmpty()) {
+			tr.add(new Result(Transaction.Outcome.UNKNOWN, new byte[0], null));
+		}
 		return tr.get(0);
 	}
 
@@ -512,9 +516,9 @@ public class Geth extends AbstractExecutable {
 		obj.put("gas",obj.get("gasLimit"));
 		obj.remove("gasLimit");
 		obj.remove("sender"); // unused, as recoverable from signing info.
-		obj.put("v","");
-		obj.put("r","");
-		obj.put("s","");
+		obj.put("v","0x0");
+		obj.put("r","0x0");
+		obj.put("s","0x0");
 		JSONArray json = new JSONArray();
 		json.put(0,obj);
 		//

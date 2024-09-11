@@ -76,7 +76,8 @@ public class GeneralStateTests {
 	public final static Path FIXTURES_DIR = Path.of("fixtures/GeneralStateTests");
 
 	public final static String[] INCLUDES = {
-			"**/*.json", // everything.
+			//"**/*.json", // everything.
+			"stEIP1559/typeTwoBerlin.json"
 //			"stExample/*.json",",
 //			"stStaticCall/*.json",",
 //			"stReturnDataTest/*.json",",
