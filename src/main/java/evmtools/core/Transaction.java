@@ -333,10 +333,10 @@ public abstract class Transaction {
 	public JSONObject toJSON() throws JSONException {
 		JSONObject json = new JSONObject();
 		json.put("chainId", Hex.toHexString(chainID));		
-		json.put("sender",Hex.toHexString(sender,40));
-		json.put("secretKey",Hex.toHexString(secretKey,64));
+		json.put("sender",Hex.toHexString(sender,20));
+		json.put("secretKey",Hex.toHexString(secretKey,32));
 		if(to != null) {
-			json.put("to",Hex.toHexString(to,40));
+			json.put("to",Hex.toHexString(to,20));
 		}
 		json.put("gasLimit",Hex.toHexString(gasLimit));
 		json.put("nonce",Hex.toHexString(nonce));
@@ -432,11 +432,11 @@ public abstract class Transaction {
 		
 		public JSONObject toJSON() throws JSONException {
 			JSONObject obj = new JSONObject();
-			obj.put("address", Hex.toHexString(address, 40));
+			obj.put("address", Hex.toHexString(address, 20));
 			// storage keys
 			JSONArray arr = new JSONArray();
 			for(int i=0;i!=storageKeys.length;++i) {
-				arr.put(i,Hex.toHexString(storageKeys[i], 64));
+				arr.put(i,Hex.toHexString(storageKeys[i], 32));
 			}
 			obj.put("storageKeys", arr);
 			return obj;

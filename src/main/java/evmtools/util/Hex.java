@@ -220,7 +220,7 @@ public class Hex {
 		} else {
 			StringBuilder sb = new StringBuilder();
 			sb.append("0x");
-			len = len - s.length() + 2;
+			len = (2*len) - s.length() + 2;
 			while (sb.length() < len) {
 				sb.append('0');
 			}

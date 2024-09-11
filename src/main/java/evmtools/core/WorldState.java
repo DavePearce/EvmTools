@@ -59,7 +59,7 @@ public class WorldState {
 		// Convert world state
 		JSONObject json = new JSONObject();
 		for (Map.Entry<BigInteger, Account> e : state.entrySet()) {
-			json.put(Hex.toHexString(e.getKey(),40), e.getValue().toJSON());
+			json.put(Hex.toHexString(e.getKey(),20), e.getValue().toJSON());
 		}
 		return json;
 	}

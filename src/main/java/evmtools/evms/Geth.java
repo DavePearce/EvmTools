@@ -55,7 +55,7 @@ public class Geth extends AbstractExecutable {
 	/**
 	 * Command to use to execture Geth.
 	 */
-	private final String cmd = "evm";
+	private final String cmd = "/opt/homebrew/bin/evm";
 
 	/**
 	 * Parameter which controls how much of the stack is actually recorded in the
